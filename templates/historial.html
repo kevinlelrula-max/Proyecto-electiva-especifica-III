@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ClimaLink Station — Historial</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f5f6f8;
+    --white: #ffffff;
+    --border: #e2e6ea;
+    --border-md: #cdd3db;
+    --text: #111827;
+    --muted: #6b7280;
+    --hint: #9ca3af;
+    --blue-bg: #E6F1FB;
+    --blue: #185FA5;
+    --blue-dark: #0C447C;
+    --blue-mid: #378ADD;
+    --green-bg: #EAF3DE;
+    --green: #3B6D11;
+    --green-dark: #27500A;
+    --red-bg: #FCEBEB;
+    --red: #A32D2D;
+    --red-dark: #791F1F;
+    --amber: #854F0B;
+    --navy: #0f4c75;
+    --font: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    --r-sm: 6px;
+    --r-md: 8px;
+    --r-lg: 12px;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    font-family: var(--font);
+    min-height: 100vh;
+    color: var(--text);
+    font-size: 14px;
+    line-height: 1.5;
+  }
+
+  nav {
+    background: var(--white);
+    border-bottom: 1px solid var(--border);
+    padding: 0 28px;
+    height: 58px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+
+  .brand { display: flex; align-items: center; gap: 10px; }
+
+  .brand-icon {
+    width: 32px; height: 32px;
+    background: var(--navy);
+    border-radius: var(--r-md);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px;
+  }
+
+  .brand-name { font-size: 15px; font-weight: 600; color: var(--text); }
+  .brand-sep  { color: var(--border-md); margin: 0 6px; }
+  .brand-sub  { font-size: 13px; color: var(--muted); }
+
+  .nav-right { display: flex; align-items: center; gap: 16px; }
+  .nav-user  { font-size: 13px; color: var(--muted); }
+  .nav-user strong { color: var(--text); font-weight: 500; }
+
+  .btn-logout {
+    font-size: 13px; color: var(--muted);
+    border: 1px solid var(--border); background: transparent;
+    padding: 6px 14px; border-radius: var(--r-md);
+    cursor: pointer; text-decoration: none; font-family: var(--font);
+    transition: background 0.15s, border-color 0.15s;
+  }
+  .btn-logout:hover { background: var(--bg); border-color: var(--border-md); }
+
+  main {
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 28px 24px;
+  }
+
+  .page-header { margin-bottom: 24px; }
+
+  .breadcrumb {
+    font-size: 12px; color: var(--muted);
+    margin-bottom: 6px;
+    display: flex; align-items: center;
+  }
+  .breadcrumb span { color: var(--hint); margin: 0 6px; }
+
+  .page-title { font-size: 22px; font-weight: 600; letter-spacing: -0.3px; }
+
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+
+  .stat-card {
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: var(--r-lg);
+    padding: 18px 20px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    transition: box-shadow 0.15s;
+  }
+  .stat-card:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+
+  .stat-icon {
+    width: 42px; height: 42px;
+    border-radius: var(--r-md);
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0; font-size: 18px;
+  }
+  .stat-icon-blue  { background: var(--blue-bg); }
+  .stat-icon-green { background: var(--green-bg); }
+  .stat-icon-red   { background: var(--red-bg); }
+
+  .stat-label { font-size: 12px; color: var(--muted); margin-bottom: 3px; }
+  .stat-value { font-size: 26px; font-weight: 600; line-height: 1; }
+  .stat-value-blue  { color: var(--blue); }
+  .stat-value-green { color: var(--green); }
+  .stat-value-red   { color: var(--red); }
+
+  .card {
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: var(--r-lg);
+    overflow: hidden;
+    margin-bottom: 16px;
+  }
+
+  .card-header {
+    padding: 14px 20px;
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+    background: #fafbfc;
+  }
+
+  .card-title { font-size: 13px; font-weight: 500; }
+
+  .filters-body {
+    padding: 16px 20px;
+    display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap;
+  }
+
+  .filter-group { display: flex; flex-direction: column; gap: 5px; }
+
+  .filter-group label {
+    font-size: 11px; color: var(--muted);
+    font-weight: 500; letter-spacing: 0.04em; text-transform: uppercase;
+  }
+
+  select {
+    background: var(--white);
+    border: 1px solid var(--border-md);
+    border-radius: var(--r-md);
+    padding: 8px 32px 8px 12px;
+    color: var(--text);
+    font-family: var(--font);
+    font-size: 13px;
+    outline: none; cursor: pointer;
+    min-width: 148px;
+    transition: border-color 0.15s, box-shadow 0.15s;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%236b7280' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 11px center;
+  }
+  select:focus {
+    border-color: var(--blue-mid);
+    box-shadow: 0 0 0 3px rgba(55,138,221,0.12);
+  }
+
+  .btn-primary {
+    background: var(--navy); color: #fff; border: none;
+    padding: 8px 18px; border-radius: var(--r-md);
+    font-family: var(--font); font-size: 13px; font-weight: 500;
+    cursor: pointer; transition: background 0.15s;
+  }
+  .btn-primary:hover { background: var(--blue); }
+  .btn-primary:active { transform: scale(0.98); }
+
+  .btn-secondary {
+    background: transparent;
+    border: 1px solid var(--border-md);
+    color: var(--muted); padding: 8px 14px;
+    border-radius: var(--r-md); font-family: var(--font);
+    font-size: 13px; cursor: pointer; text-decoration: none;
+    transition: background 0.15s;
+  }
+  .btn-secondary:hover { background: var(--bg); color: var(--text); }
+
+  .count-pill {
+    display: inline-flex; align-items: center;
+    padding: 3px 10px;
+    background: var(--bg); border: 1px solid var(--border);
+    border-radius: 20px; font-size: 12px; color: var(--muted); font-weight: 500;
+  }
+
+  table { width: 100%; border-collapse: collapse; }
+
+  thead th {
+    padding: 10px 20px; text-align: left;
+    font-size: 11px; font-weight: 500; color: var(--muted);
+    letter-spacing: 0.05em; text-transform: uppercase;
+    background: #fafbfc;
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+  }
+
+  tbody tr { border-bottom: 1px solid #f0f2f5; transition: background 0.1s; }
+  tbody tr:hover { background: #f8f9fb; }
+  tbody tr:last-child { border-bottom: none; }
+
+  tbody td { padding: 13px 20px; font-size: 13px; vertical-align: middle; }
+
+  .td-id { font-size: 12px; color: var(--hint); font-variant-numeric: tabular-nums; }
+
+  .cryo-tag {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: var(--blue-bg); color: var(--blue-dark);
+    border: 1px solid #B5D4F4;
+    padding: 4px 10px; border-radius: var(--r-md);
+    font-size: 12px; font-weight: 500;
+  }
+  .cryo-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--blue-mid); flex-shrink: 0; }
+
+  .especie-cell { text-transform: capitalize; }
+
+  .temp { font-size: 13px; font-weight: 500; font-variant-numeric: tabular-nums; }
+  .temp-ok   { color: var(--blue); }
+  .temp-warn { color: var(--amber); }
+
+  .td-num { font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+
+  .badge {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 4px 10px; border-radius: 20px;
+    font-size: 11px; font-weight: 500;
+  }
+  .badge-optimo { background: var(--green-bg); color: var(--green-dark); border: 1px solid #C0DD97; }
+  .badge-riesgo { background: var(--red-bg);   color: var(--red-dark);   border: 1px solid #F7C1C1; }
+
+  .bdot { width: 5px; height: 5px; border-radius: 50%; flex-shrink: 0; }
+  .bdot-ok   { background: #639922; }
+  .bdot-risk { background: #E24B4A; animation: pulse 1.5s infinite; }
+
+  .td-date { font-size: 12px; color: var(--muted); }
+
+  .empty-row td {
+    padding: 64px 20px;
+    text-align: center;
+    color: var(--muted); font-size: 13px;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50%       { opacity: 0.35; }
+  }
+
+  @media (max-width: 800px) {
+    .stats { grid-template-columns: 1fr; }
+    nav { padding: 0 16px; }
+    main { padding: 20px 16px; }
+    .filters-body { flex-direction: column; align-items: stretch; }
+    select { min-width: 100%; }
+    .brand-sub, .brand-sep { display: none; }
+    thead th, tbody td { padding: 10px 14px; }
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="brand">
+    <div class="brand-icon">🐟</div>
+    <span class="brand-name">ClimaLink</span>
+    <span class="brand-sep">/</span>
+    <span class="brand-sub">Pesquera Estrada</span>
+  </div>
+  <div class="nav-right">
+    <span class="nav-user">Usuario: <strong>{{ session.usuario }}</strong></span>
+    <a href="/logout" class="btn-logout">Cerrar sesión</a>
+  </div>
+</nav>
+
+<main>
+
+  <div class="page-header">
+    <div class="breadcrumb">
+      Panel de control <span>/</span> Historial
+    </div>
+    <h1 class="page-title">Historial de congeladores</h1>
+  </div>
+
+  <div class="stats">
+    <div class="stat-card">
+      <div class="stat-icon stat-icon-blue">📋</div>
+      <div>
+        <div class="stat-label">Total registros</div>
+        <div class="stat-value stat-value-blue">{{ total }}</div>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon stat-icon-green">✓</div>
+      <div>
+        <div class="stat-label">Estado óptimo</div>
+        <div class="stat-value stat-value-green">{{ optimos }}</div>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon stat-icon-red">!</div>
+      <div>
+        <div class="stat-label">En riesgo</div>
+        <div class="stat-value stat-value-red">{{ riesgos }}</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">Filtros</span>
+    </div>
+    <div class="filters-body">
+      <form method="GET" action="/historial" style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;width:100%;">
+        <div class="filter-group">
+          <label>Congelador</label>
+          <select name="congelador">
+            <option value="">Todos</option>
+            <option value="A" {% if filtro_congelador == 'A' %}selected{% endif %}>Congelador A</option>
+            <option value="B" {% if filtro_congelador == 'B' %}selected{% endif %}>Congelador B</option>
+            <option value="C" {% if filtro_congelador == 'C' %}selected{% endif %}>Congelador C</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <label>Especie</label>
+          <select name="especie">
+            <option value="">Todas</option>
+            <option value="trucha"  {% if filtro_especie == 'trucha'  %}selected{% endif %}>Trucha</option>
+            <option value="tilapia" {% if filtro_especie == 'tilapia' %}selected{% endif %}>Tilapia</option>
+            <option value="bagre"   {% if filtro_especie == 'bagre'   %}selected{% endif %}>Bagre</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <label>Estado</label>
+          <select name="estado">
+            <option value="">Todos</option>
+            <option value="OPTIMO" {% if filtro_estado == 'OPTIMO' %}selected{% endif %}>Óptimo</option>
+            <option value="RIESGO" {% if filtro_estado == 'RIESGO' %}selected{% endif %}>Riesgo</option>
+          </select>
+        </div>
+        <button type="submit" class="btn-primary">Aplicar filtros</button>
+        <a href="/historial" class="btn-secondary">Limpiar</a>
+      </form>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">Registros recientes</span>
+      <span class="count-pill">{{ registros|length }} resultado{{ 's' if registros|length != 1 else '' }}</span>
+    </div>
+
+    {% if registros %}
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Congelador</th>
+          <th>Especie</th>
+          <th>Temperatura</th>
+          <th>Humedad</th>
+          <th>Almacenado</th>
+          <th>Estado</th>
+          <th>Fecha / Hora</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in registros %}
+        <tr>
+          <td class="td-id">{{ r['id'] }}</td>
+          <td>
+            <span class="cryo-tag">
+              <span class="cryo-dot"></span>
+              Congelador {{ r['congelador'] }}
+            </span>
+          </td>
+          <td class="especie-cell">{{ r['especie'] }}</td>
+          <td>
+            <span class="temp {% if r['temperatura'] > -15 %}temp-warn{% else %}temp-ok{% endif %}">
+              {{ r['temperatura'] }} °C
+            </span>
+          </td>
+          <td class="td-num">{{ r['humedad'] }}%</td>
+          <td class="td-num">{{ r['tiempo'] }} h</td>
+          <td>
+            {% if r['estado'] == 'OPTIMO' %}
+              <span class="badge badge-optimo"><span class="bdot bdot-ok"></span>Óptimo</span>
+            {% else %}
+              <span class="badge badge-riesgo"><span class="bdot bdot-risk"></span>Riesgo</span>
+            {% endif %}
+          </td>
+          <td class="td-date">{{ r['fecha'] if r['fecha'] else '—' }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <table><tbody>
+      <tr class="empty-row">
+        <td colspan="8">Sin resultados para los filtros seleccionados.</td>
+      </tr>
+    </tbody></table>
+    {% endif %}
+  </div>
+
+</main>
+</body>
+</html>

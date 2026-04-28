@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ClimaLink Station — Nueva Contraseña</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --navy: #0d1b2a; --navy2: #112236; --navy3: #162d44;
+    --blue: #1a56db; --blue-light: #2563eb; --blue-glow: rgba(26,86,219,0.15);
+    --silver: #94a3b8; --silver-light: #cbd5e1; --white: #f1f5f9;
+    --border: rgba(148,163,184,0.12); --font: 'Sora', sans-serif;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: var(--font); background: var(--navy); min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 40px 24px; }
+  body::before { content: ''; position: fixed; inset: 0; background-image: linear-gradient(rgba(148,163,184,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(148,163,184,0.03) 1px, transparent 1px); background-size: 32px 32px; pointer-events: none; }
+  .container { position: relative; z-index: 1; width: 100%; max-width: 420px; animation: fadeUp 0.5s ease both; }
+  .logo { display: flex; align-items: center; gap: 12px; margin-bottom: 32px; }
+  .logo-icon { width: 36px; height: 36px; background: var(--blue); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 16px; box-shadow: 0 6px 20px rgba(26,86,219,0.4); }
+  .logo-text { font-size: 14px; font-weight: 600; color: var(--white); }
+  .logo-sub { font-size: 11px; color: var(--silver); font-weight: 300; }
+  .card { background: var(--navy2); border: 1px solid var(--border); border-radius: 16px; padding: 40px; }
+  .card-icon { width: 48px; height: 48px; background: rgba(26,86,219,0.12); border: 1px solid rgba(26,86,219,0.3); border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 22px; margin-bottom: 20px; }
+  .card-title { font-size: 22px; font-weight: 700; color: var(--white); letter-spacing: -0.3px; margin-bottom: 8px; }
+  .card-desc { font-size: 13px; color: var(--silver); font-weight: 300; line-height: 1.6; margin-bottom: 28px; }
+  .alert { padding: 12px 16px; border-radius: 8px; font-size: 13px; margin-bottom: 24px; display: flex; align-items: flex-start; gap: 10px; line-height: 1.5; }
+  .alert-error { background: rgba(239,68,68,0.08); border: 1px solid rgba(239,68,68,0.25); color: #fca5a5; }
+  .field { margin-bottom: 18px; }
+  label { display: block; font-size: 13px; font-weight: 500; color: var(--silver-light); margin-bottom: 8px; }
+  input { width: 100%; background: var(--navy); border: 1px solid var(--border); border-radius: 8px; padding: 12px 16px; font-family: var(--font); font-size: 14px; color: var(--white); outline: none; transition: border-color 0.2s, box-shadow 0.2s, background 0.2s; }
+  input:focus { border-color: var(--blue-light); background: var(--navy3); box-shadow: 0 0 0 3px var(--blue-glow); }
+  input::placeholder { color: rgba(148,163,184,0.35); }
+  .btn-primary { width: 100%; background: var(--blue); color: #fff; border: none; border-radius: 8px; padding: 13px; font-family: var(--font); font-size: 14px; font-weight: 600; cursor: pointer; transition: background 0.2s, box-shadow 0.2s; margin-top: 8px; }
+  .btn-primary:hover { background: var(--blue-light); box-shadow: 0 8px 24px rgba(26,86,219,0.35); }
+  .back-link { text-align: center; font-size: 13px; color: var(--silver); margin-top: 20px; }
+  .back-link a { color: var(--blue-light); text-decoration: none; font-weight: 500; }
+  @keyframes fadeUp { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="logo">
+    <div class="logo-icon">🐟</div>
+    <div><div class="logo-text">ClimaLink Station</div><div class="logo-sub">Pesquera Estrada</div></div>
+  </div>
+  <div class="card">
+    <div class="card-icon">🔒</div>
+    <div class="card-title">Nueva contraseña</div>
+    <div class="card-desc">Elige una contraseña segura de al menos 6 caracteres.</div>
+
+    {% with messages = get_flashed_messages() %}
+      {% if messages %}
+        {% set parts = messages[0].split('|') %}
+        <div class="alert alert-{{ parts[0] }}">
+          <span>⚠ {{ parts[1] }}</span>
+        </div>
+      {% endif %}
+    {% endwith %}
+
+    <form method="POST">
+      <div class="field">
+        <label>Nueva contraseña</label>
+        <input type="password" name="password" placeholder="Mínimo 6 caracteres" required>
+      </div>
+      <div class="field">
+        <label>Confirmar contraseña</label>
+        <input type="password" name="confirm" placeholder="Repite la contraseña" required>
+      </div>
+      <button type="submit" class="btn-primary">Actualizar contraseña</button>
+    </form>
+    <div class="back-link"><a href="/">← Volver al inicio de sesión</a></div>
+  </div>
+</div>
+</body>
+</html>
