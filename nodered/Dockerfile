@@ -1,6 +1,6 @@
 FROM nodered/node-red:latest
 
-# Copiar flows y configuración
+# Copiar archivos de configuración
 COPY flows.json /data/flows.json
 COPY package.json /data/package.json
 COPY settings.js /data/settings.js
@@ -9,6 +9,10 @@ COPY settings.js /data/settings.js
 WORKDIR /data
 RUN npm install
 
+# Puerto que usa Render
+ENV PORT=1880
+
 EXPOSE 1880
 
-CMD ["node-red", "--settings", "/data/settings.js"]
+ENTRYPOINT ["node-red"]
+CMD ["--settings", "/data/settings.js", "--userDir", "/data"]
