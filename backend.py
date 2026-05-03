@@ -30,7 +30,7 @@ TOPIC = "pesquera/congelador"
 # ─── BASE DE DATOS ───────────────────────────────────────
 DATABASE_URL = os.environ.get(
     "DATABASE_URL",
-    "postgresql://climalink:rTzY0aKIvu9f1MHUQVT0ZXo3t0xoXBhj@dpg-d7rqlv7avr4c73a43k70-a/climalink"
+    "postgresql://climalink:rTzY0aKIvu9f1MHUQVT0ZXo3t0xoXBhj@dpg-d7rqlv7avr4c73a43k70-a.oregon-postgres.render.com/climalink"
 )
 
 db_lock = threading.Lock()
