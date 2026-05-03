@@ -3,7 +3,24 @@ import random
 import time
 import paho.mqtt.client as mqtt
 
-BROKER = "localhost"
+# ============================================================
+#  CONFIGURACIÓN — Cambia USAR_NUBE según el entorno
+#  True  → HiveMQ Cloud (cualquier red)
+#  False → Mosquitto local (misma PC)
+# ============================================================
+USAR_NUBE = True
+
+if USAR_NUBE:
+    BROKER    = "0b158edb9649430e9bf6c29ac988da7f.s1.eu.hivemq.cloud"
+    PORT      = 8883
+    MQTT_USER = "pesquera"
+    MQTT_PASS = "Pesquera2026!"
+else:
+    BROKER    = "localhost"
+    PORT      = 1883
+    MQTT_USER = None
+    MQTT_PASS = None
+
 TOPIC         = "pesquera/congelador"
 TOPIC_CONTROL = "pesquera/congelador/+/control"
 
@@ -22,6 +39,14 @@ congeladores = {
 # -------------------------------------------------------
 # Callback: llega comando desde Node-RED (slider)
 # -------------------------------------------------------
+def on_connect(client, userdata, flags, rc, properties=None):
+    if rc == 0:
+        modo = "HiveMQ Cloud ☁" if USAR_NUBE else "Mosquitto Local 🖥"
+        print(f"✅ Simulador conectado a {modo}")
+        client.subscribe(TOPIC_CONTROL, qos=1)
+    else:
+        print(f"❌ Error de conexión: {rc}")
+
 def on_message(client, userdata, msg):
     try:
         data     = json.loads(msg.payload.decode())
@@ -40,15 +65,32 @@ def on_message(client, userdata, msg):
     except Exception as e:
         print(f"⚠️  Error en comando de control: {e}")
 
+def on_disconnect(client, userdata, rc, properties=None):
+    print("🔴 Desconectado. Reconectando...")
+    try:
+        client.reconnect()
+    except Exception as e:
+        print(f"❌ Error al reconectar: {e}")
+
 # -------------------------------------------------------
 # Configuración MQTT
 # -------------------------------------------------------
-client = mqtt.Client()
-client.on_message = on_message
-client.connect(BROKER, 1883, 60)
-client.subscribe(TOPIC_CONTROL, qos=1)
+client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)
+
+if USAR_NUBE:
+    client.username_pw_set(MQTT_USER, MQTT_PASS)
+    client.tls_set()
+
+client.on_connect    = on_connect
+client.on_message    = on_message
+client.on_disconnect = on_disconnect
+
+modo = "HiveMQ Cloud ☁" if USAR_NUBE else "Mosquitto Local 🖥"
+print(f"🔌 Conectando a {modo}...")
+client.connect(BROKER, PORT, 60)
 client.loop_start()
 
+time.sleep(2)  # Espera a que conecte
 print("🚀 Simulador iniciado. Publicando cada 3 segundos...\n")
 
 # -------------------------------------------------------
@@ -67,7 +109,7 @@ while True:
             # Ya llegó: oscila ligeramente alrededor del setpoint (ruido de sensor)
             nueva_temp = target + random.uniform(-0.2, 0.2)
         elif diferencia < 0:
-            # Necesita bajar (enfriar) — avanza vel grados hacia el target
+            # Necesita bajar (enfriar)
             nueva_temp = temp - vel + random.uniform(-0.1, 0.05)
         else:
             # Necesita subir (calentar)

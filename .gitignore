@@ -1,0 +1,8 @@
+datos.db
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+.env
+*.db-journal
