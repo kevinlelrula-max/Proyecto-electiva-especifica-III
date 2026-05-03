@@ -1,15 +1,13 @@
 FROM nodered/node-red:latest
 
-# Copiar archivos de configuración
 COPY flows.json /data/flows.json
+COPY flows_cred.json /data/flows_cred.json
 COPY package.json /data/package.json
 COPY settings.js /data/settings.js
 
-# Instalar nodos adicionales
 WORKDIR /data
 RUN npm install
 
-# Puerto que usa Render
 ENV PORT=1880
 
 EXPOSE 1880
