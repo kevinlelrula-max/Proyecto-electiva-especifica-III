@@ -1287,12 +1287,12 @@
   {
     "id": "78343014686507df",
     "type": "mqtt-broker",
-    "name": "localhost",
-    "broker": "localhost",
-    "port": 1883,
+    "name": "HiveMQ Cloud",
+    "broker": "0b158edb9649430e9bf6c29ac988da7f.s1.eu.hivemq.cloud",
+    "port": 8883,
     "clientid": "",
     "autoConnect": true,
-    "usetls": false,
+    "usetls": true,
     "protocolVersion": 4,
     "keepalive": 60,
     "cleansession": true,
@@ -1314,6 +1314,7 @@
     "willMsg": {},
     "userProps": "",
     "sessionExpiry": "",
+    "tls": "",
     "credentials": {
       "user": "pesquera",
       "password": "Pesquera2026!"
