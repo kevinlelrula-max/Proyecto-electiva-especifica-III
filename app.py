@@ -2,11 +2,16 @@ from flask import Flask, render_template, request, redirect, url_for, session, f
 import sqlite3
 import hashlib
 import secrets
+import os
 
 app = Flask(__name__)
 app.secret_key = "climalink_pesquera_2026_secure"
 
 DB_PATH = "datos.db"
+
+# URL del dashboard Node-RED
+# Cuando despliegues Node-RED en Render cambia esta variable
+NODE_RED_URL = os.environ.get("NODE_RED_URL", "http://localhost:1880/ui")
 
 # ───────────────────────── DB ─────────────────────────
 
@@ -61,9 +66,6 @@ def hash_password(password):
 
 @app.route("/", methods=["GET", "POST"])
 def login():
-
-    # ❌ IMPORTANTE: YA NO AUTO-REDIRECT A NODE-RED
-
     if request.method == "POST":
         username = request.form.get("username", "").strip()
         password = request.form.get("password", "").strip()
@@ -78,14 +80,11 @@ def login():
         if user:
             session["usuario"] = username
             session["nombre"] = user["nombre"]
-
-            # ✔ SOLO AQUÍ ENTRAS AL DASHBOARD IoT
-            return redirect("http://localhost:1880/ui")
+            return redirect(NODE_RED_URL)
         else:
             flash("error|Usuario o contraseña incorrectos.")
 
     return render_template("login.html")
-
 
 # ───────────────────────── REGISTRO ─────────────────────────
 
@@ -126,7 +125,6 @@ def registro():
 
     return render_template("registro.html")
 
-
 # ───────────────────────── RECUPERAR ─────────────────────────
 
 @app.route("/recuperar", methods=["GET", "POST"])
@@ -154,7 +152,6 @@ def recuperar():
             flash("error|Usuario no encontrado.")
 
     return render_template("recuperar.html")
-
 
 # ───────────────────────── RESET ─────────────────────────
 
@@ -192,12 +189,10 @@ def reset(token):
 
     return render_template("reset.html", token=token)
 
-
 # ───────────────────────── HISTORIAL ─────────────────────────
 
 @app.route("/historial")
 def historial():
-
     if "usuario" not in session:
         return redirect(url_for("login"))
 
@@ -213,11 +208,9 @@ def historial():
     if congelador:
         query += " AND congelador = ?"
         params.append(congelador)
-
     if especie:
         query += " AND especie = ?"
         params.append(especie)
-
     if estado:
         query += " AND estado = ?"
         params.append(estado)
@@ -225,7 +218,6 @@ def historial():
     query += " ORDER BY id DESC LIMIT 200"
 
     registros = conn.execute(query, params).fetchall()
-
     total = conn.execute("SELECT COUNT(*) FROM registros").fetchone()[0]
     riesgos = conn.execute("SELECT COUNT(*) FROM registros WHERE estado='RIESGO'").fetchone()[0]
     optimos = conn.execute("SELECT COUNT(*) FROM registros WHERE estado='OPTIMO'").fetchone()[0]
@@ -243,7 +235,6 @@ def historial():
         filtro_estado=estado
     )
 
-
 # ───────────────────────── LOGOUT ─────────────────────────
 
 @app.route("/logout")
@@ -251,9 +242,10 @@ def logout():
     session.clear()
     return redirect(url_for("login"))
 
-
 # ───────────────────────── MAIN ─────────────────────────
 
+# Inicializar BD al arrancar (funciona tanto con gunicorn como con python app.py)
+init_db()
+
 if __name__ == "__main__":
-    init_db()
     app.run(debug=True, port=5001)
