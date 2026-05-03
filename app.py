@@ -1,25 +1,27 @@
 from flask import Flask, render_template, request, redirect, url_for, session, flash
-import sqlite3
 import hashlib
 import secrets
 import os
+import psycopg2
+from psycopg2.extras import RealDictCursor
 
 app = Flask(__name__)
 app.secret_key = "climalink_pesquera_2026_secure"
 
-DB_PATH = "datos.db"
+# ─── BASE DE DATOS ───────────────────────────────────────
+# En Render se configura como variable de entorno DATABASE_URL
+# Localmente usa SQLite como fallback
+DATABASE_URL = os.environ.get(
+    "DATABASE_URL",
+    "postgresql://climalink:rTzY0aKIvu9f1MHUQVT0ZXo3t0xoXBhj@dpg-d7rqlv7avr4c73a43k70-a/climalink"
+)
 
 # URL del dashboard Node-RED
-# Cuando despliegues Node-RED en Render cambia esta variable
 NODE_RED_URL = os.environ.get("NODE_RED_URL", "http://localhost:1880/ui")
 
-# ───────────────────────── DB ─────────────────────────
-
 def get_db():
-    conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row
+    conn = psycopg2.connect(DATABASE_URL, cursor_factory=RealDictCursor)
     return conn
-
 
 def init_db():
     conn = get_db()
@@ -27,7 +29,7 @@ def init_db():
 
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS registros (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            id SERIAL PRIMARY KEY,
             congelador TEXT,
             temperatura REAL,
             humedad REAL,
@@ -40,7 +42,7 @@ def init_db():
 
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS usuarios (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            id SERIAL PRIMARY KEY,
             nombre TEXT NOT NULL,
             username TEXT UNIQUE NOT NULL,
             password TEXT NOT NULL,
@@ -51,18 +53,19 @@ def init_db():
 
     password_hash = hashlib.sha256("admin123".encode()).hexdigest()
     cursor.execute("""
-        INSERT OR IGNORE INTO usuarios (nombre, username, password)
-        VALUES (?, ?, ?)
+        INSERT INTO usuarios (nombre, username, password)
+        VALUES (%s, %s, %s)
+        ON CONFLICT (username) DO NOTHING
     """, ("Administrador", "admin", password_hash))
 
     conn.commit()
+    cursor.close()
     conn.close()
-
 
 def hash_password(password):
     return hashlib.sha256(password.encode()).hexdigest()
 
-# ───────────────────────── LOGIN ─────────────────────────
+# ─── LOGIN ───────────────────────────────────────────────
 
 @app.route("/", methods=["GET", "POST"])
 def login():
@@ -71,10 +74,13 @@ def login():
         password = request.form.get("password", "").strip()
 
         conn = get_db()
-        user = conn.execute(
-            "SELECT * FROM usuarios WHERE username = ? AND password = ? AND activo = 1",
+        cursor = conn.cursor()
+        cursor.execute(
+            "SELECT * FROM usuarios WHERE username = %s AND password = %s AND activo = 1",
             (username, hash_password(password))
-        ).fetchone()
+        )
+        user = cursor.fetchone()
+        cursor.close()
         conn.close()
 
         if user:
@@ -86,7 +92,7 @@ def login():
 
     return render_template("login.html")
 
-# ───────────────────────── REGISTRO ─────────────────────────
+# ─── REGISTRO ────────────────────────────────────────────
 
 @app.route("/registro", methods=["GET", "POST"])
 def registro():
@@ -99,33 +105,31 @@ def registro():
         if not nombre or not username or not password:
             flash("error|Todos los campos son obligatorios.")
             return render_template("registro.html")
-
         if len(password) < 6:
             flash("error|La contraseña debe tener al menos 6 caracteres.")
             return render_template("registro.html")
-
         if password != confirm:
             flash("error|Las contraseñas no coinciden.")
             return render_template("registro.html")
 
         try:
             conn = get_db()
-            conn.execute(
-                "INSERT INTO usuarios (nombre, username, password) VALUES (?, ?, ?)",
+            cursor = conn.cursor()
+            cursor.execute(
+                "INSERT INTO usuarios (nombre, username, password) VALUES (%s, %s, %s)",
                 (nombre, username, hash_password(password))
             )
             conn.commit()
+            cursor.close()
             conn.close()
-
             flash("success|Cuenta creada correctamente.")
             return redirect(url_for("login"))
-
-        except sqlite3.IntegrityError:
+        except psycopg2.errors.UniqueViolation:
             flash("error|Usuario ya existe.")
 
     return render_template("registro.html")
 
-# ───────────────────────── RECUPERAR ─────────────────────────
+# ─── RECUPERAR ───────────────────────────────────────────
 
 @app.route("/recuperar", methods=["GET", "POST"])
 def recuperar():
@@ -133,35 +137,36 @@ def recuperar():
         username = request.form.get("username", "").strip()
 
         conn = get_db()
-        user = conn.execute(
-            "SELECT * FROM usuarios WHERE username = ?",
-            (username,)
-        ).fetchone()
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM usuarios WHERE username = %s", (username,))
+        user = cursor.fetchone()
 
         if user:
             token = secrets.token_hex(16)
-            conn.execute(
-                "UPDATE usuarios SET reset_token = ? WHERE username = ?",
+            cursor.execute(
+                "UPDATE usuarios SET reset_token = %s WHERE username = %s",
                 (token, username)
             )
             conn.commit()
+            cursor.close()
             conn.close()
             return redirect(url_for("reset", token=token))
         else:
+            cursor.close()
             conn.close()
             flash("error|Usuario no encontrado.")
 
     return render_template("recuperar.html")
 
-# ───────────────────────── RESET ─────────────────────────
+# ─── RESET ───────────────────────────────────────────────
 
 @app.route("/reset/<token>", methods=["GET", "POST"])
 def reset(token):
     conn = get_db()
-    user = conn.execute(
-        "SELECT * FROM usuarios WHERE reset_token = ?",
-        (token,)
-    ).fetchone()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM usuarios WHERE reset_token = %s", (token,))
+    user = cursor.fetchone()
+    cursor.close()
     conn.close()
 
     if not user:
@@ -177,19 +182,20 @@ def reset(token):
             return render_template("reset.html", token=token)
 
         conn = get_db()
-        conn.execute(
-            "UPDATE usuarios SET password = ?, reset_token = NULL WHERE reset_token = ?",
+        cursor = conn.cursor()
+        cursor.execute(
+            "UPDATE usuarios SET password = %s, reset_token = NULL WHERE reset_token = %s",
             (hash_password(password), token)
         )
         conn.commit()
+        cursor.close()
         conn.close()
-
         flash("success|Contraseña actualizada.")
         return redirect(url_for("login"))
 
     return render_template("reset.html", token=token)
 
-# ───────────────────────── HISTORIAL ─────────────────────────
+# ─── HISTORIAL ───────────────────────────────────────────
 
 @app.route("/historial")
 def historial():
@@ -197,31 +203,40 @@ def historial():
         return redirect(url_for("login"))
 
     conn = get_db()
+    cursor = conn.cursor()
 
     congelador = request.args.get("congelador", "")
-    especie = request.args.get("especie", "")
-    estado = request.args.get("estado", "")
+    especie    = request.args.get("especie", "")
+    estado     = request.args.get("estado", "")
 
-    query = "SELECT * FROM registros WHERE 1=1"
+    query  = "SELECT * FROM registros WHERE 1=1"
     params = []
 
     if congelador:
-        query += " AND congelador = ?"
+        query += " AND congelador = %s"
         params.append(congelador)
     if especie:
-        query += " AND especie = ?"
+        query += " AND especie = %s"
         params.append(especie)
     if estado:
-        query += " AND estado = ?"
+        query += " AND estado = %s"
         params.append(estado)
 
     query += " ORDER BY id DESC LIMIT 200"
 
-    registros = conn.execute(query, params).fetchall()
-    total = conn.execute("SELECT COUNT(*) FROM registros").fetchone()[0]
-    riesgos = conn.execute("SELECT COUNT(*) FROM registros WHERE estado='RIESGO'").fetchone()[0]
-    optimos = conn.execute("SELECT COUNT(*) FROM registros WHERE estado='OPTIMO'").fetchone()[0]
+    cursor.execute(query, params)
+    registros = cursor.fetchall()
 
+    cursor.execute("SELECT COUNT(*) FROM registros")
+    total = cursor.fetchone()["count"]
+
+    cursor.execute("SELECT COUNT(*) FROM registros WHERE estado='RIESGO'")
+    riesgos = cursor.fetchone()["count"]
+
+    cursor.execute("SELECT COUNT(*) FROM registros WHERE estado='OPTIMO'")
+    optimos = cursor.fetchone()["count"]
+
+    cursor.close()
     conn.close()
 
     return render_template(
@@ -235,16 +250,15 @@ def historial():
         filtro_estado=estado
     )
 
-# ───────────────────────── LOGOUT ─────────────────────────
+# ─── LOGOUT ──────────────────────────────────────────────
 
 @app.route("/logout")
 def logout():
     session.clear()
     return redirect(url_for("login"))
 
-# ───────────────────────── MAIN ─────────────────────────
+# ─── MAIN ────────────────────────────────────────────────
 
-# Inicializar BD al arrancar (funciona tanto con gunicorn como con python app.py)
 init_db()
 
 if __name__ == "__main__":

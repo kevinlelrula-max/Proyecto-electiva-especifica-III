@@ -1,7 +1,9 @@
 import json
-import sqlite3
 import threading
 import time
+import os
+import psycopg2
+from psycopg2.extras import RealDictCursor
 import paho.mqtt.client as mqtt
 from datetime import datetime
 
@@ -25,37 +27,48 @@ else:
 
 TOPIC = "pesquera/congelador"
 
-# ---------------- BASE DE DATOS ----------------
-conn = sqlite3.connect("datos.db", check_same_thread=False)
-cursor = conn.cursor()
+# ─── BASE DE DATOS ───────────────────────────────────────
+DATABASE_URL = os.environ.get(
+    "DATABASE_URL",
+    "postgresql://climalink:rTzY0aKIvu9f1MHUQVT0ZXo3t0xoXBhj@dpg-d7rqlv7avr4c73a43k70-a/climalink"
+)
+
 db_lock = threading.Lock()
 
-cursor.execute("""
-CREATE TABLE IF NOT EXISTS registros (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    congelador TEXT,
-    temperatura REAL,
-    humedad REAL,
-    especie TEXT,
-    tiempo INTEGER,
-    estado TEXT,
-    fecha TEXT
-)
-""")
+def get_db():
+    return psycopg2.connect(DATABASE_URL, cursor_factory=RealDictCursor)
 
-cursor.execute("""
-CREATE TABLE IF NOT EXISTS usuarios (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    nombre TEXT NOT NULL,
-    username TEXT UNIQUE NOT NULL,
-    password TEXT NOT NULL,
-    reset_token TEXT,
-    activo INTEGER DEFAULT 1
-)
-""")
-conn.commit()
+def init_db():
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS registros (
+            id SERIAL PRIMARY KEY,
+            congelador TEXT,
+            temperatura REAL,
+            humedad REAL,
+            especie TEXT,
+            tiempo INTEGER,
+            estado TEXT,
+            fecha TEXT
+        )
+    """)
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS usuarios (
+            id SERIAL PRIMARY KEY,
+            nombre TEXT NOT NULL,
+            username TEXT UNIQUE NOT NULL,
+            password TEXT NOT NULL,
+            reset_token TEXT,
+            activo INTEGER DEFAULT 1
+        )
+    """)
+    conn.commit()
+    cursor.close()
+    conn.close()
+    print("✅ Base de datos inicializada")
 
-# ---------------- REGLAS ----------------
+# ─── REGLAS ──────────────────────────────────────────────
 condiciones = {
     "tilapia": {"temp": -18, "max_horas": 48},
     "bagre":   {"temp": -18, "max_horas": 60},
@@ -68,18 +81,12 @@ def evaluar_estado(temp, tiempo, especie):
         return "RIESGO"
     return "OPTIMO"
 
-# ---------------- CONTROL INTELIGENTE DE GUARDADO ----------------
-last_temp       = {}
-last_state      = {}
-last_save_time  = {}
+# ─── CONTROL INTELIGENTE DE GUARDADO ─────────────────────
+last_temp      = {}
+last_state     = {}
+last_save_time = {}
 
 def should_save(congelador, temp, estado):
-    """
-    Guarda solo si:
-    - Es la primera vez que se recibe ese congelador
-    - Cambia el estado (OPTIMO ↔ RIESGO)
-    - La temperatura varía más de 0.3°C
-    """
     if congelador not in last_temp:
         return True
     if last_state.get(congelador) != estado:
@@ -88,7 +95,7 @@ def should_save(congelador, temp, estado):
         return True
     return False
 
-# ---------------- MQTT ----------------
+# ─── MQTT ────────────────────────────────────────────────
 def on_connect(client, userdata, flags, rc, properties=None):
     if rc == 0:
         modo = "HiveMQ Cloud ☁" if USAR_NUBE else "Mosquitto Local 🖥"
@@ -110,12 +117,10 @@ def on_message(client, userdata, msg):
         estado = evaluar_estado(temp, tiempo, especie)
         now    = time.time()
 
-        # Límite de frecuencia — máximo 1 guardado cada 5 segundos por congelador
         if congelador in last_save_time:
             if now - last_save_time[congelador] < 5:
                 return
 
-        # Lógica inteligente — solo guarda si hay cambio relevante
         if not should_save(congelador, temp, estado):
             return
 
@@ -130,12 +135,16 @@ def on_message(client, userdata, msg):
             print(f"⚠ ALERTA: {congelador} en riesgo")
 
         with db_lock:
+            conn = get_db()
+            cursor = conn.cursor()
             cursor.execute("""
                 INSERT INTO registros
                 (congelador, temperatura, humedad, especie, tiempo, estado, fecha)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
+                VALUES (%s, %s, %s, %s, %s, %s, %s)
             """, (congelador, temp, hum, especie, tiempo, estado, fecha))
             conn.commit()
+            cursor.close()
+            conn.close()
 
     except Exception as e:
         print(f"❌ Error procesando mensaje: {e}")
@@ -147,7 +156,9 @@ def on_disconnect(client, userdata, rc, properties=None):
     except Exception as e:
         print(f"❌ Error al reconectar: {e}")
 
-# ---------------- CONEXIÓN ----------------
+# ─── CONEXIÓN ────────────────────────────────────────────
+init_db()
+
 client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)
 
 if USAR_NUBE:
