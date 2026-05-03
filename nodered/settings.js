@@ -3,8 +3,10 @@ module.exports = {
     userDir: '/data',
     flowFile: 'flows.json',
 
-    // Sin autenticación — acceso libre al editor
-    // En producción se recomienda agregar adminAuth
+    // Clave para encriptar credenciales
+    // Al definirla, Node-RED acepta las credenciales del flows.json
+    credentialSecret: "climalink2026pesquera",
+
     adminAuth: null,
 
     logging: {
