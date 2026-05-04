@@ -1,32 +1,22 @@
-<<<<<<< HEAD
 from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify
-import sqlite3
-import hashlib
-import secrets
-import smtplib
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
-=======
-from flask import Flask, render_template, request, redirect, url_for, session, flash
 import hashlib
 import secrets
 import os
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 import psycopg2
 from psycopg2.extras import RealDictCursor
->>>>>>> 82b247ab15c2afe028c7c3ffc4c589baed43834e
 
 app = Flask(__name__)
 app.secret_key = "climalink_pesquera_2026_secure"
 
 # ─── BASE DE DATOS ───────────────────────────────────────
-# En Render se configura como variable de entorno DATABASE_URL
-# Localmente usa SQLite como fallback
 DATABASE_URL = os.environ.get(
     "DATABASE_URL",
-    "postgresql://climalink:rTzY0aKIvu9f1MHUQVT0ZXo3t0xoXBhj@dpg-d7rqlv7avr4c73a43k70-a/climalink"
+    "postgresql://climalink:rTzY0aKIvu9f1MHUQVT0ZXo3t0xoXBhj@dpg-d7rqlv7avr4c73a43k70-a.oregon-postgres.render.com/climalink"
 )
 
-# URL del dashboard Node-RED
 NODE_RED_URL = os.environ.get("NODE_RED_URL", "http://localhost:1880/ui")
 
 def get_db():
@@ -126,15 +116,12 @@ def registro():
             flash("error|Las contraseñas no coinciden.")
             return render_template("registro.html")
 
-        if not email_alerta or not app_password:
-            flash("error|El correo y App Password son obligatorios para las alertas.")
-            return render_template("registro.html")
-
         try:
             conn = get_db()
-            conn.execute(
-                "INSERT INTO usuarios (nombre, username, password, email_alerta, app_password) VALUES (?, ?, ?, ?, ?)",
-                (nombre, username, hash_password(password), email_alerta, app_password)
+            cursor = conn.cursor()
+            cursor.execute(
+                "INSERT INTO usuarios (nombre, username, password, email_alerta, app_password) VALUES (%s, %s, %s, %s, %s)",
+                (nombre, username, hash_password(password), email_alerta or None, app_password or None)
             )
             conn.commit()
             cursor.close()
@@ -192,7 +179,7 @@ def reset(token):
 
     if request.method == "POST":
         password = request.form.get("password", "").strip()
-        confirm = request.form.get("confirm", "").strip()
+        confirm  = request.form.get("confirm", "").strip()
 
         if password != confirm:
             flash("error|Las contraseñas no coinciden.")
@@ -267,35 +254,27 @@ def historial():
         filtro_estado=estado
     )
 
-# ─── LOGOUT ──────────────────────────────────────────────
-
-@app.route("/logout")
-def logout():
-    session.clear()
-    return redirect(url_for("login"))
-
-# ─── MAIN ────────────────────────────────────────────────
-
-<<<<<<< HEAD
-# ───────────────────────── ALERTA EMAIL ─────────────────────────
+# ─── ALERTA EMAIL ────────────────────────────────────────
 
 @app.route("/alerta-email", methods=["POST"])
 def alerta_email():
     try:
         data = request.get_json()
 
-        # Obtener credenciales del último usuario activo
         conn = get_db()
-        user = conn.execute(
+        cursor = conn.cursor()
+        cursor.execute(
             "SELECT email_alerta, app_password FROM usuarios WHERE activo = 1 AND email_alerta IS NOT NULL ORDER BY id DESC LIMIT 1"
-        ).fetchone()
+        )
+        user = cursor.fetchone()
+        cursor.close()
         conn.close()
 
         if not user or not user["email_alerta"] or not user["app_password"]:
             return jsonify({"error": "No hay credenciales de email configuradas"}), 400
 
-        remitente  = user["email_alerta"]
-        password   = user["app_password"]
+        remitente    = user["email_alerta"]
+        password     = user["app_password"]
         destinatario = user["email_alerta"]
 
         congelador  = data.get("congelador", "?")
@@ -337,11 +316,16 @@ def alerta_email():
         print(f"❌ Error enviando email: {e}")
         return jsonify({"error": str(e)}), 500
 
+# ─── LOGOUT ──────────────────────────────────────────────
 
-# ───────────────────────── MAIN ─────────────────────────
-=======
+@app.route("/logout")
+def logout():
+    session.clear()
+    return redirect(url_for("login"))
+
+# ─── MAIN ────────────────────────────────────────────────
+
 init_db()
->>>>>>> 82b247ab15c2afe028c7c3ffc4c589baed43834e
 
 if __name__ == "__main__":
     app.run(debug=True, port=5001)
