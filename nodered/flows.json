@@ -1,1535 +1,1540 @@
 [
-    {
-        "id": "c4e5af6920245a64",
-        "type": "tab",
-        "label": "Pesquera IoT",
-        "disabled": false,
-        "info": "",
-        "env": []
-    },
-    {
-        "id": "2a70e4eec1a6627c",
-        "type": "mqtt in",
-        "z": "c4e5af6920245a64",
-        "name": "pesquera/congelador",
-        "topic": "pesquera/congelador",
-        "qos": "2",
-        "datatype": "auto-detect",
-        "broker": "78343014686507df",
-        "nl": false,
-        "rap": true,
-        "rh": 0,
-        "inputs": 0,
-        "x": 150,
-        "y": 260,
-        "wires": [
-            [
-                "6d9fe6ad8be147b5"
-            ]
-        ]
-    },
-    {
-        "id": "781187428f0534fb",
-        "type": "mqtt in",
-        "z": "c4e5af6920245a64",
-        "name": "Control regulación",
-        "topic": "pesquera/congelador/+/control",
-        "qos": "1",
-        "datatype": "auto-detect",
-        "broker": "78343014686507df",
-        "nl": false,
-        "rap": true,
-        "rh": 0,
-        "inputs": 0,
-        "x": 150,
-        "y": 1100,
-        "wires": [
-            []
-        ]
-    },
-    {
-        "id": "af1af8c982c67de9",
-        "type": "mqtt out",
-        "z": "c4e5af6920245a64",
-        "name": "Publicar control",
-        "topic": "",
-        "qos": "1",
-        "retain": false,
-        "respTopic": "",
-        "contentType": "",
-        "userProps": "",
-        "correl": "",
-        "expiry": "",
-        "broker": "78343014686507df",
-        "x": 1400,
-        "y": 1340,
-        "wires": []
-    },
-    {
-        "id": "6d9fe6ad8be147b5",
-        "type": "switch",
-        "z": "c4e5af6920245a64",
-        "name": "switch",
-        "property": "payload.congelador",
-        "propertyType": "msg",
-        "rules": [
-            {
-                "t": "eq",
-                "v": "A",
-                "vt": "str"
-            },
-            {
-                "t": "eq",
-                "v": "B",
-                "vt": "str"
-            },
-            {
-                "t": "eq",
-                "v": "C",
-                "vt": "str"
-            }
-        ],
-        "checkall": "true",
-        "repair": false,
-        "outputs": 3,
-        "x": 390,
-        "y": 400,
-        "wires": [
-            [
-                "77ac52ba0e091470",
-                "056e92b9ea0c93ac"
-            ],
-            [
-                "5ea21e06e2f67150",
-                "8fbf929885462c54"
-            ],
-            [
-                "e81a7d14bd522078",
-                "d6e028f6ce725da3"
-            ]
-        ]
-    },
-    {
-        "id": "77ac52ba0e091470",
-        "type": "function",
-        "z": "c4e5af6920245a64",
-        "name": "Congelador A",
-        "func": "let data = msg.payload;\n\n// --- Detectar sensor dañado ---\nif (data === null || data.temperatura === undefined ||\n    data.temperatura > 50 || data.temperatura < -80) {\n    msg.sensor_estado = 'FALLA';\n    msg.alerta_tipo   = 'SENSOR_DAÑADO';\n    msg.alerta_msg    = '⛔ Congelador A: sensor sin señal o fuera de rango';\n    msg.congelador    = 'A';\n    return [null, msg];\n}\n\n// --- Evaluar temperatura ---\nif (data.temperatura > -5) {\n    data.estado = 'CRÍTICO';\n} else if (data.temperatura > -18) {\n    data.estado = 'ALERTA';\n} else {\n    data.estado = 'OK';\n}\n\nmsg.temp          = data.temperatura;\nmsg.hum           = data.humedad;\nmsg.esp           = data.especie;\nmsg.tiempo        = data.tiempo_almacenamiento;\nmsg.estado        = data.estado;\nmsg.sensor_estado = 'OK';\nmsg.congelador    = 'A';\n\n// Guardar temp actual en contexto global para regulación\nglobal.set('temp_A', msg.temp);\n\n// Generar alerta si no está en rango normal\nif (data.estado !== 'OK') {\n    msg.alerta_tipo = data.estado === 'CRÍTICO' ? 'TEMP_CRÍTICA' : 'TEMP_ELEVADA';\n    msg.alerta_msg  = (data.estado === 'CRÍTICO' ? '🔴' : '🟠') +\n        ' Congelador A: ' + msg.temp + '°C — ' + data.estado;\n    return [msg, msg];\n}\n\nmsg.alerta_tipo = 'OK';\nmsg.alerta_msg  = '';\nreturn [msg, null];",
-        "outputs": 2,
-        "timeout": 0,
-        "noerr": 0,
-        "initialize": "",
-        "finalize": "",
-        "libs": [],
-        "x": 620,
-        "y": 320,
-        "wires": [
-            [
-                "1c554ecffe56cacb",
-                "fad6e6a717582b0c",
-                "3a4dba1f1caf5e13",
-                "7c54f06b4be553d7",
-                "661c6bd71f977aa5",
-                "816e9b8ab59e8e74",
-                "f6de6bc2ee3ab51b",
-                "bcbbc5e3961f6f08"
-            ],
-            [
-                "0e25ab59fb175b2a"
-            ]
-        ]
-    },
-    {
-        "id": "5ea21e06e2f67150",
-        "type": "function",
-        "z": "c4e5af6920245a64",
-        "name": "Congelador B",
-        "func": "let data = msg.payload;\n\n// --- Detectar sensor dañado ---\nif (data === null || data.temperatura === undefined ||\n    data.temperatura > 50 || data.temperatura < -80) {\n    msg.sensor_estado = 'FALLA';\n    msg.alerta_tipo   = 'SENSOR_DAÑADO';\n    msg.alerta_msg    = '⛔ Congelador B: sensor sin señal o fuera de rango';\n    msg.congelador    = 'B';\n    return [null, msg];\n}\n\nif (data.temperatura > -5) {\n    data.estado = 'CRÍTICO';\n} else if (data.temperatura > -18) {\n    data.estado = 'ALERTA';\n} else {\n    data.estado = 'OK';\n}\n\nmsg.temp          = data.temperatura;\nmsg.hum           = data.humedad;\nmsg.esp           = data.especie;\nmsg.tiempo        = data.tiempo_almacenamiento;\nmsg.estado        = data.estado;\nmsg.sensor_estado = 'OK';\nmsg.congelador    = 'B';\n\nglobal.set('temp_B', msg.temp);\n\nif (data.estado !== 'OK') {\n    msg.alerta_tipo = data.estado === 'CRÍTICO' ? 'TEMP_CRÍTICA' : 'TEMP_ELEVADA';\n    msg.alerta_msg  = (data.estado === 'CRÍTICO' ? '🔴' : '🟠') +\n        ' Congelador B: ' + msg.temp + '°C — ' + data.estado;\n    return [msg, msg];\n}\n\nmsg.alerta_tipo = 'OK';\nmsg.alerta_msg  = '';\nreturn [msg, null];",
-        "outputs": 2,
-        "timeout": 0,
-        "noerr": 0,
-        "initialize": "",
-        "finalize": "",
-        "libs": [],
-        "x": 620,
-        "y": 500,
-        "wires": [
-            [
-                "ac4bb9b4ec112815",
-                "7c4697132a069a9e",
-                "2f57583c4702085a",
-                "76433b56a4544f52",
-                "d633630718550e4b",
-                "306c18978a66ec19",
-                "662d059e99361e2f",
-                "bcbbc5e3961f6f08"
-            ],
-            [
-                "0e25ab59fb175b2a"
-            ]
-        ]
-    },
-    {
-        "id": "e81a7d14bd522078",
-        "type": "function",
-        "z": "c4e5af6920245a64",
-        "name": "Congelador C",
-        "func": "let data = msg.payload;\n\n// --- Detectar sensor dañado ---\nif (data === null || data.temperatura === undefined ||\n    data.temperatura > 50 || data.temperatura < -80) {\n    msg.sensor_estado = 'FALLA';\n    msg.alerta_tipo   = 'SENSOR_DAÑADO';\n    msg.alerta_msg    = '⛔ Congelador C: sensor sin señal o fuera de rango';\n    msg.congelador    = 'C';\n    return [null, msg];\n}\n\nif (data.temperatura > -5) {\n    data.estado = 'CRÍTICO';\n} else if (data.temperatura > -18) {\n    data.estado = 'ALERTA';\n} else {\n    data.estado = 'OK';\n}\n\nmsg.temp          = data.temperatura;\nmsg.hum           = data.humedad;\nmsg.esp           = data.especie;\nmsg.tiempo        = data.tiempo_almacenamiento;\nmsg.estado        = data.estado;\nmsg.sensor_estado = 'OK';\nmsg.congelador    = 'C';\n\nglobal.set('temp_C', msg.temp);\n\nif (data.estado !== 'OK') {\n    msg.alerta_tipo = data.estado === 'CRÍTICO' ? 'TEMP_CRÍTICA' : 'TEMP_ELEVADA';\n    msg.alerta_msg  = (data.estado === 'CRÍTICO' ? '🔴' : '🟠') +\n        ' Congelador C: ' + msg.temp + '°C — ' + data.estado;\n    return [msg, msg];\n}\n\nmsg.alerta_tipo = 'OK';\nmsg.alerta_msg  = '';\nreturn [msg, null];",
-        "outputs": 2,
-        "timeout": 0,
-        "noerr": 0,
-        "initialize": "",
-        "finalize": "",
-        "libs": [],
-        "x": 620,
-        "y": 700,
-        "wires": [
-            [
-                "fcc6c45488d98d54",
-                "5b087549265d8b38",
-                "1fbdfa4b8bc72b5a",
-                "ac31952f0200a03f",
-                "6eb8a97ef07dce77",
-                "b2f570cffb97c5b6",
-                "bbaf3b629f1d1d62",
-                "bcbbc5e3961f6f08"
-            ],
-            [
-                "0e25ab59fb175b2a"
-            ]
-        ]
-    },
-    {
-        "id": "0e25ab59fb175b2a",
-        "type": "function",
-        "z": "c4e5af6920245a64",
-        "name": "Generador de notificaciones",
-        "func": "// Evitar repetir la misma alerta del mismo congelador\nvar cong      = msg.congelador || '?';\nvar tipo      = msg.alerta_tipo;\nvar texto     = msg.alerta_msg;\nvar keyUltima = 'ultima_alerta_' + cong;\nvar ultima    = global.get(keyUltima);\n\n// SOLO registrar si es nueva alerta\nif (ultima !== tipo) {\n    global.set(keyUltima, tipo);\n\n    var now  = new Date();\n    var hora = now.toTimeString().slice(0, 8);\n    var hist = global.get('notificaciones') || [];\n\n    hist.unshift({ hora: hora, tipo: tipo, msg: texto, cong: cong });\n    if (hist.length > 50) hist.pop();\n\n    global.set('notificaciones', hist);\n}\n\n// 🔥 SIEMPRE construir la tabla\nvar hist = global.get('notificaciones') || [];\n\n// Construcción HTML limpia (sin estilos inline)\nvar html = `\n<div class=\"notif-container\">\n    <table class=\"notif-table\">\n        <thead>\n            <tr>\n                <th>Hora</th>\n                <th>Congelador</th>\n                <th>Estado</th>\n                <th>Mensaje</th>\n            </tr>\n        </thead>\n        <tbody>\n`;\n\nhist.forEach(function(n) {\n\n    var badge = 'badge-normal';\n    var textoEstado = 'Normal';\n\n    if (n.tipo === 'TEMP_CRÍTICA') {\n        badge = 'badge-critica';\n        textoEstado = 'Crítica';\n    } \n    else if (n.tipo === 'TEMP_ELEVADA') {\n        badge = 'badge-alerta';\n        textoEstado = 'Alerta';\n    } \n    else if (n.tipo === 'SETPOINT') {\n        badge = 'badge-control';\n        textoEstado = 'Control';\n    } \n    else if (n.tipo === 'SENSOR_DAÑADO') {\n        badge = 'badge-critica';\n        textoEstado = 'Sensor';\n    }\n\n    html += `\n        <tr class=\"notif-row\">\n            <td>${n.hora}</td>\n            <td><strong>${n.cong}</strong></td>\n            <td><span class=\"badge ${badge}\">${textoEstado}</span></td>\n            <td>${n.msg}</td>\n        </tr>\n    `;\n});\n\nhtml += `\n        </tbody>\n    </table>\n</div>\n`;\n\nmsg.payload = html;\nreturn msg;",
-        "outputs": 1,
-        "timeout": 0,
-        "noerr": 0,
-        "initialize": "",
-        "finalize": "",
-        "libs": [],
-        "x": 1000,
-        "y": 1000,
-        "wires": [
-            [
-                "0adeaafe818df25c",
-                "email_switch_v2",
-                "d2fe91f666326d74"
-            ]
-        ]
-    },
-    {
-        "id": "0adeaafe818df25c",
-        "type": "ui_template",
-        "z": "c4e5af6920245a64",
-        "group": "b9862d2c920d7f15",
-        "name": "Tabla de notificaciones",
-        "order": 1,
-        "width": 12,
-        "height": 8,
-        "format": "<style>\n    .notif-container {\n        font-family: 'Segoe UI', sans-serif;\n        max-height: 380px;\n        overflow-y: auto;\n        border-radius: 14px;\n        background: #ffffff;\n        box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);\n    }\n\n    .notif-table {\n        width: 100%;\n        border-collapse: collapse;\n    }\n\n    /* Header */\n    .notif-table thead {\n        position: sticky;\n        top: 0;\n        background: #1e293b;\n        color: white;\n    }\n\n    .notif-table th {\n        padding: 12px;\n        font-size: 14px;\n        font-weight: 500;\n    }\n\n    /* Celdas */\n    .notif-table td {\n        padding: 12px;\n        font-size: 14px;\n        color: #333;\n    }\n\n    /* Filas */\n    .notif-row {\n        border-bottom: 1px solid #f0f0f0;\n        transition: background 0.2s;\n    }\n\n    .notif-row:hover {\n        background: #f9fafb;\n    }\n\n    /* Badges (colores suaves) */\n    .badge {\n        padding: 4px 10px;\n        border-radius: 999px;\n        font-size: 12px;\n        font-weight: 500;\n    }\n\n    /* Estados suaves */\n    .badge-critica {\n        background: #fee2e2;\n        color: #b91c1c;\n    }\n\n    .badge-alerta {\n        background: #fef3c7;\n        color: #92400e;\n    }\n\n    .badge-control {\n        background: #dbeafe;\n        color: #1e40af;\n    }\n\n    .badge-normal {\n        background: #dcfce7;\n        color: #166534;\n    }\n</style>\n\n<div ng-bind-html=\"msg.payload\"></div>",
-        "storeOutMessages": true,
-        "fwdInMessages": true,
-        "resendOnRefresh": true,
-        "templateScope": "local",
-        "className": "",
-        "x": 1540,
-        "y": 880,
-        "wires": [
-            []
-        ]
-    },
-    {
-        "id": "056e92b9ea0c93ac",
-        "type": "trigger",
-        "z": "c4e5af6920245a64",
-        "name": "Estado del sensor A",
-        "op1": "",
-        "op2": "{\"alerta_tipo\":\"SENSOR_DESCONECTADO\",\"alerta_msg\":\"⛔ Congelador A: sin señal por más de 10 segundos\",\"congelador\":\"A\"}",
-        "op1type": "nul",
-        "op2type": "json",
-        "duration": "10",
-        "extend": true,
-        "overrideDelay": false,
-        "units": "s",
-        "reset": "",
-        "bytopic": "all",
-        "topic": "topic",
-        "outputs": 1,
-        "x": 640,
-        "y": 960,
-        "wires": [
-            [
-                "0e25ab59fb175b2a"
-            ]
-        ]
-    },
-    {
-        "id": "8fbf929885462c54",
-        "type": "trigger",
-        "z": "c4e5af6920245a64",
-        "name": "Estado del sensor B",
-        "op1": "",
-        "op2": "{\"alerta_tipo\":\"SENSOR_DESCONECTADO\",\"alerta_msg\":\"⛔ Congelador B: sin señal por más de 10 segundos\",\"congelador\":\"B\"}",
-        "op1type": "nul",
-        "op2type": "json",
-        "duration": "10",
-        "extend": true,
-        "overrideDelay": false,
-        "units": "s",
-        "reset": "",
-        "bytopic": "all",
-        "topic": "topic",
-        "outputs": 1,
-        "x": 640,
-        "y": 1020,
-        "wires": [
-            [
-                "0e25ab59fb175b2a"
-            ]
-        ]
-    },
-    {
-        "id": "d6e028f6ce725da3",
-        "type": "trigger",
-        "z": "c4e5af6920245a64",
-        "name": "Estado del sensor C",
-        "op1": "",
-        "op2": "{\"alerta_tipo\":\"SENSOR_DESCONECTADO\",\"alerta_msg\":\"⛔ Congelador C: sin señal por más de 10 segundos\",\"congelador\":\"C\"}",
-        "op1type": "nul",
-        "op2type": "json",
-        "duration": "10",
-        "extend": true,
-        "overrideDelay": false,
-        "units": "s",
-        "reset": "",
-        "bytopic": "all",
-        "topic": "topic",
-        "outputs": 1,
-        "x": 640,
-        "y": 1080,
-        "wires": [
-            [
-                "0e25ab59fb175b2a"
-            ]
-        ]
-    },
-    {
-        "id": "9ee6f48b878e08d0",
-        "type": "ui_slider",
-        "z": "c4e5af6920245a64",
-        "name": "Control de temperatura A",
-        "label": "Control de temperatura (°C)",
-        "tooltip": "",
-        "group": "cf52349c92b4595b",
-        "order": 10,
-        "width": 6,
-        "height": 1,
-        "passthru": true,
-        "outs": "all",
-        "topic": "A",
-        "topicType": "str",
-        "min": -40,
-        "max": -5,
-        "step": 1,
-        "className": "",
-        "x": 660,
-        "y": 1200,
-        "wires": [
-            [
-                "88329af4972b00c1"
-            ]
-        ]
-    },
-    {
-        "id": "fca6a3f3dd0fad49",
-        "type": "ui_slider",
-        "z": "c4e5af6920245a64",
-        "name": "Control de temperatura B",
-        "label": "Control de temperatura (°C)",
-        "tooltip": "",
-        "group": "992752971a20e668",
-        "order": 10,
-        "width": 6,
-        "height": 1,
-        "passthru": true,
-        "outs": "all",
-        "topic": "B",
-        "topicType": "str",
-        "min": -40,
-        "max": -5,
-        "step": 1,
-        "className": "",
-        "x": 660,
-        "y": 1240,
-        "wires": [
-            [
-                "88329af4972b00c1"
-            ]
-        ]
-    },
-    {
-        "id": "f02c0c38ec3c0578",
-        "type": "ui_slider",
-        "z": "c4e5af6920245a64",
-        "name": "Control de temperatura C",
-        "label": "Control de temperatura (°C)",
-        "tooltip": "",
-        "group": "6129b16b94677491",
-        "order": 10,
-        "width": 6,
-        "height": 1,
-        "passthru": true,
-        "outs": "all",
-        "topic": "C",
-        "topicType": "str",
-        "min": -40,
-        "max": -5,
-        "step": 1,
-        "className": "",
-        "x": 660,
-        "y": 1280,
-        "wires": [
-            [
-                "88329af4972b00c1"
-            ]
-        ]
-    },
-    {
-        "id": "88329af4972b00c1",
-        "type": "function",
-        "z": "c4e5af6920245a64",
-        "name": "Regulación de temperatura",
-        "func": "var setpoint   = msg.payload;\nvar congelador = msg.topic;   // 'A', 'B' o 'C'\nvar temp_actual = global.get('temp_' + congelador) || 0;\n\nglobal.set('setpoint_' + congelador, setpoint);\n\nvar accion;\nif (temp_actual > setpoint + 1) {\n    accion = 'ENFRIAR';\n} else if (temp_actual < setpoint - 1) {\n    accion = 'CALENTAR';\n} else {\n    accion = 'MANTENER';\n}\n\n// Notificar el cambio de setpoint\nvar notifMsg = {\n    alerta_tipo: 'SETPOINT',\n    alerta_msg: '🎛 Congelador ' + congelador + ': setpoint ajustado a ' + setpoint + '°C — acción: ' + accion,\n    congelador: congelador\n};\nnode.send([msg, notifMsg]);\n\n// Publicar comando vía MQTT hacia el simulador.py\nmsg.payload = { congelador: congelador, setpoint: setpoint, accion: accion };\nmsg.topic   = 'pesquera/congelador/' + congelador + '/control';\nreturn null;",
-        "outputs": 2,
-        "timeout": 0,
-        "noerr": 0,
-        "initialize": "",
-        "finalize": "",
-        "libs": [],
-        "x": 920,
-        "y": 1240,
-        "wires": [
-            [
-                "af1af8c982c67de9"
-            ],
-            [
-                "0e25ab59fb175b2a"
-            ]
-        ]
-    },
-    {
-        "id": "1c554ecffe56cacb",
-        "type": "function",
-        "z": "c4e5af6920245a64",
-        "name": "function 6",
-        "func": "msg.payload = msg.temp;\nreturn msg;",
-        "outputs": 1,
-        "timeout": 0,
-        "noerr": 0,
-        "initialize": "",
-        "finalize": "",
-        "libs": [],
-        "x": 860,
-        "y": 160,
-        "wires": [
-            [
-                "56e979ef96b34929"
-            ]
-        ]
-    },
-    {
-        "id": "56e979ef96b34929",
-        "type": "ui_gauge",
-        "z": "c4e5af6920245a64",
-        "name": "",
-        "group": "cf52349c92b4595b",
-        "order": 1,
-        "width": 0,
-        "height": 0,
-        "gtype": "gage",
-        "title": "Temperatura",
-        "label": "units",
-        "format": "{{msg.temp}}",
-        "min": 0,
-        "max": "-50",
-        "colors": [
-            "#00b500",
-            "#e6e600",
-            "#ca3838"
-        ],
-        "seg1": "",
-        "seg2": "",
-        "diff": false,
-        "className": "",
-        "x": 1080,
-        "y": 160,
-        "wires": []
-    },
-    {
-        "id": "fad6e6a717582b0c",
-        "type": "function",
-        "z": "c4e5af6920245a64",
-        "name": "function 3",
-        "func": "msg.payload = msg.temp;\nreturn msg;",
-        "outputs": 1,
-        "timeout": 0,
-        "noerr": 0,
-        "initialize": "",
-        "finalize": "",
-        "libs": [],
-        "x": 1000,
-        "y": 220,
-        "wires": [
-            [
-                "fb504f1a99321216"
-            ]
-        ]
-    },
-    {
-        "id": "fb504f1a99321216",
-        "type": "ui_chart",
-        "z": "c4e5af6920245a64",
-        "name": "",
-        "group": "cf52349c92b4595b",
-        "order": 2,
-        "width": 0,
-        "height": 0,
-        "label": "Grafico",
-        "chartType": "line",
-        "legend": "false",
-        "xformat": "HH:mm:ss",
-        "interpolate": "linear",
-        "nodata": "",
-        "dot": false,
-        "ymin": "",
-        "ymax": "",
-        "removeOlder": 1,
-        "removeOlderPoints": "",
-        "removeOlderUnit": "3600",
-        "cutout": 0,
-        "useOneColor": false,
-        "useUTC": false,
-        "colors": [
-            "#1f77b4",
-            "#aec7e8",
-            "#ff7f0e",
-            "#2ca02c",
-            "#98df8a",
-            "#d62728",
-            "#ff9896",
-            "#9467bd",
-            "#c5b0d5"
-        ],
-        "outputs": 1,
-        "useDifferentColor": false,
-        "className": "",
-        "x": 1200,
-        "y": 220,
-        "wires": [
-            []
-        ]
-    },
-    {
-        "id": "3a4dba1f1caf5e13",
-        "type": "ui_text",
-        "z": "c4e5af6920245a64",
-        "group": "cf52349c92b4595b",
-        "order": 0,
-        "width": 0,
-        "height": 0,
-        "name": "",
-        "label": "",
-        "format": "Temperatura: {{msg.temp}} °C",
-        "layout": "row-spread",
-        "className": "",
-        "style": false,
-        "font": "",
-        "fontSize": 16,
-        "color": "#000000",
-        "x": 890,
-        "y": 100,
-        "wires": []
-    },
-    {
-        "id": "7c54f06b4be553d7",
-        "type": "ui_text",
-        "z": "c4e5af6920245a64",
-        "group": "cf52349c92b4595b",
-        "order": 3,
-        "width": 0,
-        "height": 0,
-        "name": "",
-        "label": "",
-        "format": "Humedad: {{msg.hum}} %",
-        "layout": "row-spread",
-        "className": "",
-        "style": false,
-        "font": "",
-        "fontSize": 16,
-        "color": "#000000",
-        "x": 950,
-        "y": 270,
-        "wires": []
-    },
-    {
-        "id": "661c6bd71f977aa5",
-        "type": "ui_text",
-        "z": "c4e5af6920245a64",
-        "group": "cf52349c92b4595b",
-        "order": 4,
-        "width": 0,
-        "height": 0,
-        "name": "",
-        "label": "",
-        "format": "Especie: {{msg.esp}}",
-        "layout": "row-spread",
-        "className": "",
-        "style": false,
-        "font": "",
-        "fontSize": 16,
-        "color": "#000000",
-        "x": 950,
-        "y": 310,
-        "wires": []
-    },
-    {
-        "id": "816e9b8ab59e8e74",
-        "type": "ui_text",
-        "z": "c4e5af6920245a64",
-        "group": "cf52349c92b4595b",
-        "order": 5,
-        "width": 0,
-        "height": 0,
-        "name": "",
-        "label": "",
-        "format": "<div style=\"font-size:20px\"> 🚨  <span style=\"color: {{msg.estado === 'CRÍTICO' ? 'red' : (msg.estado === 'ALERTA' ? 'orange' : 'green')}}\"> {{msg.estado}} </span> </div>",
-        "layout": "row-spread",
-        "className": "",
-        "style": false,
-        "font": "",
-        "fontSize": 16,
-        "color": "#000000",
-        "x": 1070,
-        "y": 350,
-        "wires": []
-    },
-    {
-        "id": "f6de6bc2ee3ab51b",
-        "type": "ui_text",
-        "z": "c4e5af6920245a64",
-        "group": "cf52349c92b4595b",
-        "order": 6,
-        "width": 0,
-        "height": 0,
-        "name": "",
-        "label": "",
-        "format": "Tiempo almacenamiento: {{msg.tiempo}} h",
-        "layout": "row-spread",
-        "className": "",
-        "style": false,
-        "font": "",
-        "fontSize": 14,
-        "color": "#000000",
-        "x": 1000,
-        "y": 390,
-        "wires": []
-    },
-    {
-        "id": "ac4bb9b4ec112815",
-        "type": "function",
-        "z": "c4e5af6920245a64",
-        "name": "function 7",
-        "func": "msg.payload = msg.temp;\nreturn msg;",
-        "outputs": 1,
-        "timeout": 0,
-        "noerr": 0,
-        "initialize": "",
-        "finalize": "",
-        "libs": [],
-        "x": 940,
-        "y": 440,
-        "wires": [
-            [
-                "b0d1f53f28db6442"
-            ]
-        ]
-    },
-    {
-        "id": "b0d1f53f28db6442",
-        "type": "ui_gauge",
-        "z": "c4e5af6920245a64",
-        "name": "",
-        "group": "992752971a20e668",
-        "order": 1,
-        "width": 0,
-        "height": 0,
-        "gtype": "gage",
-        "title": "Temperatura",
-        "label": "units",
-        "format": "{{msg.temp}}",
-        "min": 0,
-        "max": "-50",
-        "colors": [
-            "#00b500",
-            "#e6e600",
-            "#ca3838"
-        ],
-        "seg1": "",
-        "seg2": "",
-        "diff": false,
-        "className": "",
-        "x": 1170,
-        "y": 440,
-        "wires": []
-    },
-    {
-        "id": "7c4697132a069a9e",
-        "type": "function",
-        "z": "c4e5af6920245a64",
-        "name": "function 4",
-        "func": "msg.payload = msg.temp;\nreturn msg;",
-        "outputs": 1,
-        "timeout": 0,
-        "noerr": 0,
-        "initialize": "",
-        "finalize": "",
-        "libs": [],
-        "x": 1000,
-        "y": 500,
-        "wires": [
-            [
-                "21bf50012088254a"
-            ]
-        ]
-    },
-    {
-        "id": "21bf50012088254a",
-        "type": "ui_chart",
-        "z": "c4e5af6920245a64",
-        "name": "",
-        "group": "992752971a20e668",
-        "order": 2,
-        "width": 0,
-        "height": 0,
-        "label": "Grafico",
-        "chartType": "line",
-        "legend": "false",
-        "xformat": "HH:mm:ss",
-        "interpolate": "linear",
-        "nodata": "",
-        "dot": false,
-        "ymin": "",
-        "ymax": "",
-        "removeOlder": 1,
-        "removeOlderPoints": "",
-        "removeOlderUnit": "3600",
-        "cutout": 0,
-        "useOneColor": false,
-        "useUTC": false,
-        "colors": [
-            "#1f77b4",
-            "#aec7e8",
-            "#ff7f0e",
-            "#2ca02c",
-            "#98df8a",
-            "#d62728",
-            "#ff9896",
-            "#9467bd",
-            "#c5b0d5"
-        ],
-        "outputs": 1,
-        "useDifferentColor": false,
-        "className": "",
-        "x": 1200,
-        "y": 500,
-        "wires": [
-            []
-        ]
-    },
-    {
-        "id": "2f57583c4702085a",
-        "type": "ui_text",
-        "z": "c4e5af6920245a64",
-        "group": "992752971a20e668",
-        "order": 0,
-        "width": 0,
-        "height": 0,
-        "name": "",
-        "label": "",
-        "format": "Temperatura: {{msg.temp}} °C",
-        "layout": "row-spread",
-        "className": "",
-        "style": false,
-        "font": "",
-        "fontSize": 16,
-        "color": "#000000",
-        "x": 950,
-        "y": 380,
-        "wires": []
-    },
-    {
-        "id": "76433b56a4544f52",
-        "type": "ui_text",
-        "z": "c4e5af6920245a64",
-        "group": "992752971a20e668",
-        "order": 3,
-        "width": 0,
-        "height": 0,
-        "name": "",
-        "label": "",
-        "format": "Humedad: {{msg.hum}} %",
-        "layout": "row-spread",
-        "className": "",
-        "style": false,
-        "font": "",
-        "fontSize": 16,
-        "color": "#000000",
-        "x": 1010,
-        "y": 540,
-        "wires": []
-    },
-    {
-        "id": "d633630718550e4b",
-        "type": "ui_text",
-        "z": "c4e5af6920245a64",
-        "group": "992752971a20e668",
-        "order": 4,
-        "width": 0,
-        "height": 0,
-        "name": "",
-        "label": "",
-        "format": "Especie: {{msg.esp}}",
-        "layout": "row-spread",
-        "className": "",
-        "style": false,
-        "font": "",
-        "fontSize": 16,
-        "color": "#000000",
-        "x": 1010,
-        "y": 580,
-        "wires": []
-    },
-    {
-        "id": "306c18978a66ec19",
-        "type": "ui_text",
-        "z": "c4e5af6920245a64",
-        "group": "992752971a20e668",
-        "order": 5,
-        "width": 0,
-        "height": 0,
-        "name": "",
-        "label": "",
-        "format": "<div style=\"font-size:20px\"> 🚨  <span style=\"color: {{msg.estado === 'CRÍTICO' ? 'red' : (msg.estado === 'ALERTA' ? 'orange' : 'green')}}\"> {{msg.estado}} </span> </div>",
-        "layout": "row-spread",
-        "className": "",
-        "style": false,
-        "font": "",
-        "fontSize": 16,
-        "color": "#000000",
-        "x": 1050,
-        "y": 620,
-        "wires": []
-    },
-    {
-        "id": "662d059e99361e2f",
-        "type": "ui_text",
-        "z": "c4e5af6920245a64",
-        "group": "992752971a20e668",
-        "order": 6,
-        "width": 0,
-        "height": 0,
-        "name": "",
-        "label": "",
-        "format": "Tiempo almacenamiento: {{msg.tiempo}} h",
-        "layout": "row-spread",
-        "className": "",
-        "style": false,
-        "font": "",
-        "fontSize": 14,
-        "color": "#000000",
-        "x": 1000,
-        "y": 660,
-        "wires": []
-    },
-    {
-        "id": "fcc6c45488d98d54",
-        "type": "function",
-        "z": "c4e5af6920245a64",
-        "name": "function 8",
-        "func": "msg.payload = msg.temp;\nreturn msg;",
-        "outputs": 1,
-        "timeout": 0,
-        "noerr": 0,
-        "initialize": "",
-        "finalize": "",
-        "libs": [],
-        "x": 940,
-        "y": 700,
-        "wires": [
-            [
-                "bb7ee38b26844f29"
-            ]
-        ]
-    },
-    {
-        "id": "bb7ee38b26844f29",
-        "type": "ui_gauge",
-        "z": "c4e5af6920245a64",
-        "name": "",
-        "group": "6129b16b94677491",
-        "order": 1,
-        "width": 0,
-        "height": 0,
-        "gtype": "gage",
-        "title": "Temperatura",
-        "label": "units",
-        "format": "{{msg.temp}}",
-        "min": 0,
-        "max": "-50",
-        "colors": [
-            "#00b500",
-            "#e6e600",
-            "#ca3838"
-        ],
-        "seg1": "",
-        "seg2": "",
-        "diff": false,
-        "className": "",
-        "x": 1150,
-        "y": 700,
-        "wires": []
-    },
-    {
-        "id": "5b087549265d8b38",
-        "type": "function",
-        "z": "c4e5af6920245a64",
-        "name": "function 5",
-        "func": "msg.payload = msg.temp;\nreturn msg;",
-        "outputs": 1,
-        "timeout": 0,
-        "noerr": 0,
-        "initialize": "",
-        "finalize": "",
-        "libs": [],
-        "x": 1000,
-        "y": 760,
-        "wires": [
-            [
-                "91d4ff8766a4a47e"
-            ]
-        ]
-    },
-    {
-        "id": "91d4ff8766a4a47e",
-        "type": "ui_chart",
-        "z": "c4e5af6920245a64",
-        "name": "",
-        "group": "6129b16b94677491",
-        "order": 2,
-        "width": 0,
-        "height": 0,
-        "label": "Grafico",
-        "chartType": "line",
-        "legend": "false",
-        "xformat": "HH:mm:ss",
-        "interpolate": "linear",
-        "nodata": "",
-        "dot": false,
-        "ymin": "",
-        "ymax": "",
-        "removeOlder": 1,
-        "removeOlderPoints": "",
-        "removeOlderUnit": "3600",
-        "cutout": 0,
-        "useOneColor": false,
-        "useUTC": false,
-        "colors": [
-            "#1f77b4",
-            "#aec7e8",
-            "#ff7f0e",
-            "#2ca02c",
-            "#98df8a",
-            "#d62728",
-            "#ff9896",
-            "#9467bd",
-            "#c5b0d5"
-        ],
-        "outputs": 1,
-        "useDifferentColor": false,
-        "className": "",
-        "x": 1200,
-        "y": 760,
-        "wires": [
-            []
-        ]
-    },
-    {
-        "id": "1fbdfa4b8bc72b5a",
-        "type": "ui_text",
-        "z": "c4e5af6920245a64",
-        "group": "6129b16b94677491",
-        "order": 0,
-        "width": 0,
-        "height": 0,
-        "name": "",
-        "label": "",
-        "format": "Temperatura: {{msg.temp}} °C",
-        "layout": "row-spread",
-        "className": "",
-        "style": false,
-        "font": "",
-        "fontSize": 16,
-        "color": "#000000",
-        "x": 890,
-        "y": 640,
-        "wires": []
-    },
-    {
-        "id": "ac31952f0200a03f",
-        "type": "ui_text",
-        "z": "c4e5af6920245a64",
-        "group": "6129b16b94677491",
-        "order": 3,
-        "width": 0,
-        "height": 0,
-        "name": "",
-        "label": "",
-        "format": "Humedad: {{msg.hum}} %",
-        "layout": "row-spread",
-        "className": "",
-        "style": false,
-        "font": "",
-        "fontSize": 16,
-        "color": "#000000",
-        "x": 950,
-        "y": 800,
-        "wires": []
-    },
-    {
-        "id": "6eb8a97ef07dce77",
-        "type": "ui_text",
-        "z": "c4e5af6920245a64",
-        "group": "6129b16b94677491",
-        "order": 4,
-        "width": 0,
-        "height": 0,
-        "name": "",
-        "label": "",
-        "format": "Especie: {{msg.esp}}",
-        "layout": "row-spread",
-        "className": "",
-        "style": false,
-        "font": "",
-        "fontSize": 16,
-        "color": "#000000",
-        "x": 950,
-        "y": 840,
-        "wires": []
-    },
-    {
-        "id": "b2f570cffb97c5b6",
-        "type": "ui_text",
-        "z": "c4e5af6920245a64",
-        "group": "6129b16b94677491",
-        "order": 5,
-        "width": 0,
-        "height": 0,
-        "name": "",
-        "label": "",
-        "format": "<div style=\"font-size:20px\"> 🚨  <span style=\"color: {{msg.estado === 'CRÍTICO' ? 'red' : (msg.estado === 'ALERTA' ? 'orange' : 'green')}}\"> {{msg.estado}} </span> </div>",
-        "layout": "row-spread",
-        "className": "",
-        "style": false,
-        "font": "",
-        "fontSize": 16,
-        "color": "#000000",
-        "x": 930,
-        "y": 880,
-        "wires": []
-    },
-    {
-        "id": "bbaf3b629f1d1d62",
-        "type": "ui_text",
-        "z": "c4e5af6920245a64",
-        "group": "6129b16b94677491",
-        "order": 6,
-        "width": 0,
-        "height": 0,
-        "name": "",
-        "label": "",
-        "format": "Tiempo almacenamiento: {{msg.tiempo}} h",
-        "layout": "row-spread",
-        "className": "",
-        "style": false,
-        "font": "",
-        "fontSize": 14,
-        "color": "#000000",
-        "x": 980,
-        "y": 920,
-        "wires": []
-    },
-    {
-        "id": "1cd053aa18acf750",
-        "type": "ui_template",
-        "z": "c4e5af6920245a64",
-        "group": "990ac1925161468b",
-        "name": "",
-        "order": 0,
-        "width": 0,
-        "height": 0,
-        "format": "<div style=\"padding: 10px;\">\n    <a href=\"http://localhost:5001/historial\" target=\"_blank\" style=\"\n       background: #00c8e0;\n       color: #0a0f14;\n       padding: 10px 20px;\n       font-weight: bold;\n       text-decoration: none;\n       border-radius: 4px;\n       font-family: monospace;\n       font-size: 14px;\n     \">\n        📋 Ver Historial de Congeladores\n    </a>\n</div>",
-        "storeOutMessages": true,
-        "fwdInMessages": true,
-        "resendOnRefresh": true,
-        "templateScope": "local",
-        "className": "",
-        "x": 220,
-        "y": 480,
-        "wires": [
-            []
-        ]
-    },
-    {
-        "id": "bcbbc5e3961f6f08",
-        "type": "function",
-        "z": "c4e5af6920245a64",
-        "name": "Estado Cuarto Frío",
-        "func": "// Actualizar estado de este congelador en contexto global\nvar cong  = msg.congelador;\nvar temp  = msg.temp;\nvar hum   = msg.hum;\nvar esp   = msg.esp;\nvar est   = msg.estado;\n\nvar estado = global.get('cuarto_estado') || { A: null, B: null, C: null };\nestado[cong] = { temp: temp, hum: hum, esp: esp, estado: est, hora: new Date().toTimeString().slice(0,8) };\nglobal.set('cuarto_estado', estado);\n\n// Determinar estado general del cuarto\nvar critico = false;\nvar alerta  = false;\n['A','B','C'].forEach(function(c) {\n    if (!estado[c]) return;\n    if (estado[c].estado === 'CRÍTICO') critico = true;\n    if (estado[c].estado === 'ALERTA')  alerta  = true;\n});\n\nvar estadoGeneral = critico ? '🔴 CRÍTICO' : alerta ? '🟠 ALERTA' : '🟢 NORMAL';\nvar colorGeneral  = critico ? '#b91c1c'    : alerta  ? '#92400e'  : '#166534';\nvar bgGeneral     = critico ? '#fee2e2'    : alerta   ? '#fef3c7'  : '#dcfce7';\n\n// Construir HTML del panel resumen\nvar html = '<div style=\"font-family:Segoe UI,sans-serif;padding:8px\">';\n\n// Banner de estado general\nhtml += '<div style=\"background:' + bgGeneral + ';color:' + colorGeneral + ';';\nhtml += 'border-radius:10px;padding:12px 20px;margin-bottom:12px;font-size:18px;font-weight:600;text-align:center\">';\nhtml += 'Estado General del Cuarto Frío: ' + estadoGeneral + '</div>';\n\n// Tarjetas de cada congelador\nhtml += '<div style=\"display:flex;gap:12px;flex-wrap:wrap\">';\n['A','B','C'].forEach(function(c) {\n    var d = estado[c];\n    if (!d) {\n        html += '<div style=\"flex:1;min-width:200px;background:#f1f5f9;border-radius:10px;padding:14px\">';\n        html += '<div style=\"font-weight:600;color:#64748b\">Congelador ' + c + '</div>';\n        html += '<div style=\"color:#94a3b8;font-size:13px;margin-top:6px\">Sin datos aún...</div></div>';\n        return;\n    }\n    var bc = d.estado === 'CRÍTICO' ? '#fee2e2' : d.estado === 'ALERTA' ? '#fef3c7' : '#f0fdf4';\n    var tc = d.estado === 'CRÍTICO' ? '#b91c1c' : d.estado === 'ALERTA' ? '#92400e' : '#166534';\n    var em = d.estado === 'CRÍTICO' ? '🔴' : d.estado === 'ALERTA' ? '🟠' : '🟢';\n    html += '<div style=\"flex:1;min-width:200px;background:' + bc + ';border-radius:10px;padding:14px;border:1px solid ' + tc + '33\">';\n    html += '<div style=\"font-weight:700;font-size:15px;color:' + tc + '\">' + em + ' Congelador ' + c + '</div>';\n    html += '<div style=\"margin-top:8px;font-size:13px;color:#334155\">';\n    html += '<div>🌡 <b>' + d.temp + ' °C</b></div>';\n    html += '<div>💧 Humedad: ' + d.hum + '%</div>';\n    html += '<div>🐟 Especie: ' + d.esp + '</div>';\n    html += '<div style=\"color:#94a3b8;font-size:11px;margin-top:4px\">Actualizado: ' + d.hora + '</div>';\n    html += '</div></div>';\n});\nhtml += '</div></div>';\n\nmsg.payload = html;\nreturn msg;",
-        "outputs": 1,
-        "timeout": 0,
-        "noerr": 0,
-        "initialize": "",
-        "finalize": "",
-        "libs": [],
-        "x": 900,
-        "y": 1450,
-        "wires": [
-            [
-                "59cca0702391a340"
-            ]
-        ]
-    },
-    {
-        "id": "59cca0702391a340",
-        "type": "ui_template",
-        "z": "c4e5af6920245a64",
-        "group": "2f79b76d202027a5",
-        "name": "Panel Cuarto Frío",
-        "order": 1,
-        "width": 12,
-        "height": 6,
-        "format": "<div ng-bind-html=\"msg.payload\"></div>",
-        "storeOutMessages": true,
-        "fwdInMessages": true,
-        "resendOnRefresh": true,
-        "templateScope": "local",
-        "className": "",
-        "x": 1150,
-        "y": 1450,
-        "wires": [
-            []
-        ]
-    },
-    {
-        "id": "d5f863b18ea23281",
-        "type": "inject",
-        "z": "c4e5af6920245a64",
-        "name": "Verificar internet cada 30s",
-        "props": [
-            {
-                "p": "payload"
-            }
-        ],
-        "repeat": "30",
-        "crontab": "",
-        "once": true,
-        "onceDelay": 2,
-        "topic": "",
-        "payload": "",
-        "payloadType": "date",
-        "x": 200,
-        "y": 1560,
-        "wires": [
-            [
-                "b6eacfc435d882a7"
-            ]
-        ]
-    },
-    {
-        "id": "b6eacfc435d882a7",
-        "type": "http request",
-        "z": "c4e5af6920245a64",
-        "name": "Ping Google",
-        "method": "GET",
-        "ret": "txt",
-        "paytoqs": "ignore",
-        "url": "http://www.google.com",
-        "tls": "",
-        "persist": false,
-        "proxy": "",
-        "insecureHTTPParser": false,
-        "authType": "",
-        "senderr": true,
-        "headers": [],
-        "x": 460,
-        "y": 1560,
-        "wires": [
-            [
-                "6ba1f78ef03b0381"
-            ]
-        ]
-    },
-    {
-        "id": "6ba1f78ef03b0381",
-        "type": "function",
-        "z": "c4e5af6920245a64",
-        "name": "Internet OK",
-        "func": "var prev = global.get('internet_estado') || 'OK';\nglobal.set('internet_estado', 'OK');\n\nmsg.internet = 'OK';\nmsg.internet_msg = '✅ Conexión a internet activa';\nmsg.internet_color = '#166534';\nmsg.internet_bg = '#dcfce7';\n\n// Solo notificar si venía de falla\nif (prev === 'FALLA') {\n    var hist = global.get('notificaciones') || [];\n    var hora = new Date().toTimeString().slice(0,8);\n    hist.unshift({ hora: hora, tipo: 'INTERNET_OK', msg: '✅ Conexión a internet restaurada', cong: 'SYS' });\n    global.set('notificaciones', hist);\n}\n\nreturn msg;",
-        "outputs": 1,
-        "timeout": 0,
-        "noerr": 0,
-        "initialize": "",
-        "finalize": "",
-        "libs": [],
-        "x": 690,
-        "y": 1540,
-        "wires": [
-            [
-                "40b3c56787da0188",
-                "d283cf6640b538e1"
-            ]
-        ]
-    },
-    {
-        "id": "f4b9947e84364068",
-        "type": "function",
-        "z": "c4e5af6920245a64",
-        "name": "Internet FALLA",
-        "func": "var prev = global.get('internet_estado') || 'OK';\nglobal.set('internet_estado', 'FALLA');\n\nmsg.internet = 'FALLA';\nmsg.internet_msg = '❌ Sin conexión a internet';\nmsg.internet_color = '#b91c1c';\nmsg.internet_bg = '#fee2e2';\n\n// Solo notificar si es nueva falla\nif (prev !== 'FALLA') {\n    var hist = global.get('notificaciones') || [];\n    var hora = new Date().toTimeString().slice(0,8);\n    hist.unshift({ hora: hora, tipo: 'INTERNET_FALLA', msg: '❌ Pérdida de conexión a internet detectada', cong: 'SYS' });\n    global.set('notificaciones', hist);\n    global.set('ultima_alerta_SYS', 'INTERNET_FALLA');\n}\n\nreturn msg;",
-        "outputs": 1,
-        "timeout": 0,
-        "noerr": 0,
-        "initialize": "",
-        "finalize": "",
-        "libs": [],
-        "x": 690,
-        "y": 1590,
-        "wires": [
-            [
-                "40b3c56787da0188",
-                "d283cf6640b538e1"
-            ]
-        ]
-    },
-    {
-        "id": "40b3c56787da0188",
-        "type": "function",
-        "z": "c4e5af6920245a64",
-        "name": "HTML Internet",
-        "func": "var estado = msg.internet || global.get('internet_estado') || 'OK';\nvar color  = estado === 'OK' ? '#166534' : '#b91c1c';\nvar bg     = estado === 'OK' ? '#dcfce7' : '#fee2e2';\nvar texto  = estado === 'OK' ? '✅ Conexión activa' : '❌ Sin conexión';\nvar hora   = new Date().toTimeString().slice(0,8);\n\nvar html = '<div style=\"font-family:Segoe UI,sans-serif;padding:10px\">';\nhtml += '<div style=\"display:flex;align-items:center;gap:16px;background:' + bg + ';';\nhtml += 'border-radius:10px;padding:14px 20px\">';\nhtml += '<div style=\"font-size:36px\">' + (estado === 'OK' ? '🌐' : '🔌') + '</div>';\nhtml += '<div>';\nhtml += '<div style=\"font-size:18px;font-weight:700;color:' + color + '\">' + texto + '</div>';\nhtml += '<div style=\"font-size:12px;color:#64748b;margin-top:3px\">Última verificación: ' + hora + ' · Intervalo: cada 30 seg</div>';\nhtml += '</div></div></div>';\n\nmsg.payload = html;\nreturn msg;",
-        "outputs": 1,
-        "timeout": 0,
-        "noerr": 0,
-        "initialize": "",
-        "finalize": "",
-        "libs": [],
-        "x": 930,
-        "y": 1560,
-        "wires": [
-            [
-                "7ecbe7953b8fb62f"
-            ]
-        ]
-    },
-    {
-        "id": "d283cf6640b538e1",
-        "type": "function",
-        "z": "c4e5af6920245a64",
-        "name": "Notif Internet → tabla",
-        "func": "// Reconstruir tabla de notificaciones (reutiliza la lógica del generador)\nvar hist = global.get('notificaciones') || [];\nif (hist.length === 0) { return null; }\n\nvar html = '<div class=\"notif-container\"><table class=\"notif-table\">';\nhtml += '<thead><tr><th>Hora</th><th>Congelador</th><th>Estado</th><th>Mensaje</th></tr></thead><tbody>';\n\nhist.forEach(function(n) {\n    var badge = 'badge-normal';\n    var textoEstado = 'Normal';\n    if (n.tipo === 'TEMP_CRÍTICA' || n.tipo === 'INTERNET_FALLA' || n.tipo === 'SENSOR_DAÑADO') { badge = 'badge-critica'; textoEstado = n.tipo === 'INTERNET_FALLA' ? 'Internet' : 'Crítica'; }\n    else if (n.tipo === 'TEMP_ELEVADA') { badge = 'badge-alerta'; textoEstado = 'Alerta'; }\n    else if (n.tipo === 'SETPOINT') { badge = 'badge-control'; textoEstado = 'Control'; }\n    else if (n.tipo === 'INTERNET_OK') { badge = 'badge-normal'; textoEstado = 'Internet'; }\n    html += '<tr class=\"notif-row\"><td>' + n.hora + '</td>';\n    html += '<td><strong>' + n.cong + '</strong></td>';\n    html += '<td><span class=\"badge ' + badge + '\">' + textoEstado + '</span></td>';\n    html += '<td>' + n.msg + '</td></tr>';\n});\nhtml += '</tbody></table></div>';\nmsg.payload = html;\nreturn msg;",
-        "outputs": 1,
-        "timeout": 0,
-        "noerr": 0,
-        "initialize": "",
-        "finalize": "",
-        "libs": [],
-        "x": 930,
-        "y": 1620,
-        "wires": [
-            [
-                "0e25ab59fb175b2a"
-            ]
-        ]
-    },
-    {
-        "id": "7ecbe7953b8fb62f",
-        "type": "ui_template",
-        "z": "c4e5af6920245a64",
-        "group": "13e8d0fb1fe07dd1",
-        "name": "Estado Internet",
-        "order": 1,
-        "width": 12,
-        "height": 3,
-        "format": "<div ng-bind-html=\"msg.payload\"></div>",
-        "storeOutMessages": true,
-        "fwdInMessages": true,
-        "resendOnRefresh": true,
-        "templateScope": "local",
-        "className": "",
-        "x": 1160,
-        "y": 1560,
-        "wires": [
-            []
-        ]
-    },
-    {
-        "id": "email_switch_v2",
-        "type": "switch",
-        "z": "c4e5af6920245a64",
-        "name": "¿Requiere email?",
-        "property": "alerta_tipo",
-        "propertyType": "msg",
-        "rules": [
-            {
-                "t": "eq",
-                "v": "TEMP_CRÍTICA",
-                "vt": "str"
-            },
-            {
-                "t": "eq",
-                "v": "TEMP_ELEVADA",
-                "vt": "str"
-            },
-            {
-                "t": "eq",
-                "v": "SENSOR_DAÑADO",
-                "vt": "str"
-            },
-            {
-                "t": "eq",
-                "v": "SENSOR_DESCONECTADO",
-                "vt": "str"
-            }
-        ],
-        "checkall": "false",
-        "repair": false,
-        "outputs": 4,
-        "x": 1350,
-        "y": 1020,
-        "wires": [
-            [
-                "email_func_v2"
-            ],
-            [
-                "email_func_v2"
-            ],
-            [
-                "email_func_v2"
-            ],
-            [
-                "email_func_v2"
-            ]
-        ]
-    },
-    {
-        "id": "email_func_v2",
-        "type": "function",
-        "z": "c4e5af6920245a64",
-        "name": "Preparar payload Flask",
-        "func": "// Anti-spam: un email por congelador cada 10 minutos\nvar cong = msg.congelador || '?';\nvar key  = 'last_email_' + cong;\nvar last = global.get(key) || 0;\nvar now  = Date.now();\nif (now - last < 300000) { return null; }\nglobal.set(key, now);\n\nmsg.payload = {\n    congelador: cong,\n    alerta_tipo: msg.alerta_tipo || '',\n    temperatura: msg.temp || null,\n    especie: msg.esp || '',\n    alerta_msg: msg.alerta_msg || ''\n};\nmsg.headers = { 'Content-Type': 'application/json' };\nreturn msg;",
-        "outputs": 1,
-        "timeout": 0,
-        "noerr": 0,
-        "initialize": "",
-        "finalize": "",
-        "libs": [],
-        "x": 1490,
-        "y": 1160,
-        "wires": [
-            [
-                "email_http_request_v2"
-            ]
-        ]
-    },
-    {
-        "id": "email_http_request_v2",
-        "type": "http request",
-        "z": "c4e5af6920245a64",
-        "name": "POST → Flask /alerta-email",
-        "method": "POST",
-        "ret": "txt",
-        "paytoqs": "ignore",
-        "url": "http://localhost:5001/alerta-email",
-        "tls": "",
-        "persist": false,
-        "proxy": "",
-        "insecureHTTPParser": false,
-        "authType": "",
-        "senderr": false,
-        "x": 1800,
-        "y": 980,
-        "wires": [
-            []
-        ]
-    },
-    {
-        "id": "d2fe91f666326d74",
-        "type": "debug",
-        "z": "c4e5af6920245a64",
-        "name": "debug 1",
-        "active": false,
-        "tosidebar": true,
-        "console": false,
-        "tostatus": false,
-        "complete": "false",
-        "statusVal": "",
-        "statusType": "auto",
-        "x": 1200,
-        "y": 1100,
-        "wires": []
-    },
-    {
-        "id": "78343014686507df",
-        "type": "mqtt-broker",
-        "name": "localhost",
-        "broker": "localhost",
-        "port": 1883,
-        "clientid": "",
-        "autoConnect": true,
-        "usetls": false,
-        "protocolVersion": 4,
-        "keepalive": 60,
-        "cleansession": true,
-        "autoUnsubscribe": true,
-        "birthTopic": "",
-        "birthQos": "0",
-        "birthRetain": "false",
-        "birthPayload": "",
-        "birthMsg": {},
-        "closeTopic": "",
-        "closeQos": "0",
-        "closeRetain": "false",
-        "closePayload": "",
-        "closeMsg": {},
-        "willTopic": "",
-        "willQos": "0",
-        "willRetain": "false",
-        "willPayload": "",
-        "willMsg": {},
-        "userProps": "",
-        "sessionExpiry": ""
-    },
-    {
-        "id": "b9862d2c920d7f15",
-        "type": "ui_group",
-        "name": "Sistema",
-        "tab": "41b2297bd3a11a6c",
-        "order": 2,
-        "disp": true,
-        "width": "12",
-        "collapse": false,
-        "className": ""
-    },
-    {
-        "id": "cf52349c92b4595b",
-        "type": "ui_group",
-        "name": "Congelador A",
-        "tab": "98f361344255b483",
-        "order": 1,
-        "disp": true,
-        "width": "8",
-        "collapse": false,
-        "className": ""
-    },
-    {
-        "id": "992752971a20e668",
-        "type": "ui_group",
-        "name": "Congelador B",
-        "tab": "98f361344255b483",
-        "order": 2,
-        "disp": true,
-        "width": "8",
-        "collapse": false,
-        "className": ""
-    },
-    {
-        "id": "6129b16b94677491",
-        "type": "ui_group",
-        "name": "Congelador C",
-        "tab": "98f361344255b483",
-        "order": 3,
-        "disp": true,
-        "width": "8",
-        "collapse": false,
-        "className": ""
-    },
-    {
-        "id": "990ac1925161468b",
-        "type": "ui_group",
-        "name": "Historial",
-        "tab": "14091d6d21dd393e",
-        "order": 1,
-        "disp": true,
-        "width": "24",
-        "collapse": false,
-        "className": ""
-    },
-    {
-        "id": "2f79b76d202027a5",
-        "type": "ui_group",
-        "name": "Estado del Cuarto Frío",
-        "tab": "41b2297bd3a11a6c",
-        "order": 1,
-        "disp": true,
-        "width": "12",
-        "collapse": false,
-        "className": ""
-    },
-    {
-        "id": "13e8d0fb1fe07dd1",
-        "type": "ui_group",
-        "name": "Conectividad Internet",
-        "tab": "41b2297bd3a11a6c",
-        "order": 3,
-        "disp": true,
-        "width": "12",
-        "collapse": false,
-        "className": ""
-    },
-    {
-        "id": "41b2297bd3a11a6c",
-        "type": "ui_tab",
-        "name": "General",
-        "icon": "home",
-        "disabled": false,
-        "hidden": false
-    },
-    {
-        "id": "98f361344255b483",
-        "type": "ui_tab",
-        "name": "Congeladores",
-        "icon": "ac_unit",
-        "disabled": false,
-        "hidden": false
-    },
-    {
-        "id": "14091d6d21dd393e",
-        "type": "ui_tab",
-        "name": "Historial",
-        "icon": "history",
-        "disabled": false,
-        "hidden": false
-    },
-    {
-        "id": "a291b267ba6d0eda",
-        "type": "global-config",
-        "env": [],
-        "modules": {
-            "node-red-dashboard": "3.6.6"
-        }
+  {
+    "id": "c4e5af6920245a64",
+    "type": "tab",
+    "label": "Pesquera IoT",
+    "disabled": false,
+    "info": "",
+    "env": []
+  },
+  {
+    "id": "2a70e4eec1a6627c",
+    "type": "mqtt in",
+    "z": "c4e5af6920245a64",
+    "name": "pesquera/congelador",
+    "topic": "pesquera/congelador",
+    "qos": "2",
+    "datatype": "auto-detect",
+    "broker": "78343014686507df",
+    "nl": false,
+    "rap": true,
+    "rh": 0,
+    "inputs": 0,
+    "x": 150,
+    "y": 260,
+    "wires": [
+      [
+        "6d9fe6ad8be147b5"
+      ]
+    ]
+  },
+  {
+    "id": "781187428f0534fb",
+    "type": "mqtt in",
+    "z": "c4e5af6920245a64",
+    "name": "Control regulación",
+    "topic": "pesquera/congelador/+/control",
+    "qos": "1",
+    "datatype": "auto-detect",
+    "broker": "78343014686507df",
+    "nl": false,
+    "rap": true,
+    "rh": 0,
+    "inputs": 0,
+    "x": 150,
+    "y": 1100,
+    "wires": [
+      []
+    ]
+  },
+  {
+    "id": "af1af8c982c67de9",
+    "type": "mqtt out",
+    "z": "c4e5af6920245a64",
+    "name": "Publicar control",
+    "topic": "",
+    "qos": "1",
+    "retain": false,
+    "respTopic": "",
+    "contentType": "",
+    "userProps": "",
+    "correl": "",
+    "expiry": "",
+    "broker": "78343014686507df",
+    "x": 1400,
+    "y": 1340,
+    "wires": []
+  },
+  {
+    "id": "6d9fe6ad8be147b5",
+    "type": "switch",
+    "z": "c4e5af6920245a64",
+    "name": "switch",
+    "property": "payload.congelador",
+    "propertyType": "msg",
+    "rules": [
+      {
+        "t": "eq",
+        "v": "A",
+        "vt": "str"
+      },
+      {
+        "t": "eq",
+        "v": "B",
+        "vt": "str"
+      },
+      {
+        "t": "eq",
+        "v": "C",
+        "vt": "str"
+      }
+    ],
+    "checkall": "true",
+    "repair": false,
+    "outputs": 3,
+    "x": 390,
+    "y": 400,
+    "wires": [
+      [
+        "77ac52ba0e091470",
+        "056e92b9ea0c93ac"
+      ],
+      [
+        "5ea21e06e2f67150",
+        "8fbf929885462c54"
+      ],
+      [
+        "e81a7d14bd522078",
+        "d6e028f6ce725da3"
+      ]
+    ]
+  },
+  {
+    "id": "77ac52ba0e091470",
+    "type": "function",
+    "z": "c4e5af6920245a64",
+    "name": "Congelador A",
+    "func": "let data = msg.payload;\n\n// --- Detectar sensor dañado ---\nif (data === null || data.temperatura === undefined ||\n    data.temperatura > 50 || data.temperatura < -80) {\n    msg.sensor_estado = 'FALLA';\n    msg.alerta_tipo   = 'SENSOR_DAÑADO';\n    msg.alerta_msg    = '⛔ Congelador A: sensor sin señal o fuera de rango';\n    msg.congelador    = 'A';\n    return [null, msg];\n}\n\n// --- Evaluar temperatura ---\nif (data.temperatura > -5) {\n    data.estado = 'CRÍTICO';\n} else if (data.temperatura > -18) {\n    data.estado = 'ALERTA';\n} else {\n    data.estado = 'OK';\n}\n\nmsg.temp          = data.temperatura;\nmsg.hum           = data.humedad;\nmsg.esp           = data.especie;\nmsg.tiempo        = data.tiempo_almacenamiento;\nmsg.estado        = data.estado;\nmsg.sensor_estado = 'OK';\nmsg.congelador    = 'A';\n\n// Guardar temp actual en contexto global para regulación\nglobal.set('temp_A', msg.temp);\n\n// Generar alerta si no está en rango normal\nif (data.estado !== 'OK') {\n    msg.alerta_tipo = data.estado === 'CRÍTICO' ? 'TEMP_CRÍTICA' : 'TEMP_ELEVADA';\n    msg.alerta_msg  = (data.estado === 'CRÍTICO' ? '🔴' : '🟠') +\n        ' Congelador A: ' + msg.temp + '°C — ' + data.estado;\n    return [msg, msg];\n}\n\nmsg.alerta_tipo = 'OK';\nmsg.alerta_msg  = '';\nreturn [msg, null];",
+    "outputs": 2,
+    "timeout": 0,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 620,
+    "y": 320,
+    "wires": [
+      [
+        "1c554ecffe56cacb",
+        "fad6e6a717582b0c",
+        "3a4dba1f1caf5e13",
+        "7c54f06b4be553d7",
+        "661c6bd71f977aa5",
+        "816e9b8ab59e8e74",
+        "f6de6bc2ee3ab51b",
+        "bcbbc5e3961f6f08"
+      ],
+      [
+        "0e25ab59fb175b2a"
+      ]
+    ]
+  },
+  {
+    "id": "5ea21e06e2f67150",
+    "type": "function",
+    "z": "c4e5af6920245a64",
+    "name": "Congelador B",
+    "func": "let data = msg.payload;\n\n// --- Detectar sensor dañado ---\nif (data === null || data.temperatura === undefined ||\n    data.temperatura > 50 || data.temperatura < -80) {\n    msg.sensor_estado = 'FALLA';\n    msg.alerta_tipo   = 'SENSOR_DAÑADO';\n    msg.alerta_msg    = '⛔ Congelador B: sensor sin señal o fuera de rango';\n    msg.congelador    = 'B';\n    return [null, msg];\n}\n\nif (data.temperatura > -5) {\n    data.estado = 'CRÍTICO';\n} else if (data.temperatura > -18) {\n    data.estado = 'ALERTA';\n} else {\n    data.estado = 'OK';\n}\n\nmsg.temp          = data.temperatura;\nmsg.hum           = data.humedad;\nmsg.esp           = data.especie;\nmsg.tiempo        = data.tiempo_almacenamiento;\nmsg.estado        = data.estado;\nmsg.sensor_estado = 'OK';\nmsg.congelador    = 'B';\n\nglobal.set('temp_B', msg.temp);\n\nif (data.estado !== 'OK') {\n    msg.alerta_tipo = data.estado === 'CRÍTICO' ? 'TEMP_CRÍTICA' : 'TEMP_ELEVADA';\n    msg.alerta_msg  = (data.estado === 'CRÍTICO' ? '🔴' : '🟠') +\n        ' Congelador B: ' + msg.temp + '°C — ' + data.estado;\n    return [msg, msg];\n}\n\nmsg.alerta_tipo = 'OK';\nmsg.alerta_msg  = '';\nreturn [msg, null];",
+    "outputs": 2,
+    "timeout": 0,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 620,
+    "y": 500,
+    "wires": [
+      [
+        "ac4bb9b4ec112815",
+        "7c4697132a069a9e",
+        "2f57583c4702085a",
+        "76433b56a4544f52",
+        "d633630718550e4b",
+        "306c18978a66ec19",
+        "662d059e99361e2f",
+        "bcbbc5e3961f6f08"
+      ],
+      [
+        "0e25ab59fb175b2a"
+      ]
+    ]
+  },
+  {
+    "id": "e81a7d14bd522078",
+    "type": "function",
+    "z": "c4e5af6920245a64",
+    "name": "Congelador C",
+    "func": "let data = msg.payload;\n\n// --- Detectar sensor dañado ---\nif (data === null || data.temperatura === undefined ||\n    data.temperatura > 50 || data.temperatura < -80) {\n    msg.sensor_estado = 'FALLA';\n    msg.alerta_tipo   = 'SENSOR_DAÑADO';\n    msg.alerta_msg    = '⛔ Congelador C: sensor sin señal o fuera de rango';\n    msg.congelador    = 'C';\n    return [null, msg];\n}\n\nif (data.temperatura > -5) {\n    data.estado = 'CRÍTICO';\n} else if (data.temperatura > -18) {\n    data.estado = 'ALERTA';\n} else {\n    data.estado = 'OK';\n}\n\nmsg.temp          = data.temperatura;\nmsg.hum           = data.humedad;\nmsg.esp           = data.especie;\nmsg.tiempo        = data.tiempo_almacenamiento;\nmsg.estado        = data.estado;\nmsg.sensor_estado = 'OK';\nmsg.congelador    = 'C';\n\nglobal.set('temp_C', msg.temp);\n\nif (data.estado !== 'OK') {\n    msg.alerta_tipo = data.estado === 'CRÍTICO' ? 'TEMP_CRÍTICA' : 'TEMP_ELEVADA';\n    msg.alerta_msg  = (data.estado === 'CRÍTICO' ? '🔴' : '🟠') +\n        ' Congelador C: ' + msg.temp + '°C — ' + data.estado;\n    return [msg, msg];\n}\n\nmsg.alerta_tipo = 'OK';\nmsg.alerta_msg  = '';\nreturn [msg, null];",
+    "outputs": 2,
+    "timeout": 0,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 620,
+    "y": 700,
+    "wires": [
+      [
+        "fcc6c45488d98d54",
+        "5b087549265d8b38",
+        "1fbdfa4b8bc72b5a",
+        "ac31952f0200a03f",
+        "6eb8a97ef07dce77",
+        "b2f570cffb97c5b6",
+        "bbaf3b629f1d1d62",
+        "bcbbc5e3961f6f08"
+      ],
+      [
+        "0e25ab59fb175b2a"
+      ]
+    ]
+  },
+  {
+    "id": "0e25ab59fb175b2a",
+    "type": "function",
+    "z": "c4e5af6920245a64",
+    "name": "Generador de notificaciones",
+    "func": "// Evitar repetir la misma alerta del mismo congelador\nvar cong      = msg.congelador || '?';\nvar tipo      = msg.alerta_tipo;\nvar texto     = msg.alerta_msg;\nvar keyUltima = 'ultima_alerta_' + cong;\nvar ultima    = global.get(keyUltima);\n\n// SOLO registrar si es nueva alerta\nif (ultima !== tipo) {\n    global.set(keyUltima, tipo);\n\n    var now  = new Date();\n    var hora = now.toTimeString().slice(0, 8);\n    var hist = global.get('notificaciones') || [];\n\n    hist.unshift({ hora: hora, tipo: tipo, msg: texto, cong: cong });\n    if (hist.length > 50) hist.pop();\n\n    global.set('notificaciones', hist);\n}\n\n// 🔥 SIEMPRE construir la tabla\nvar hist = global.get('notificaciones') || [];\n\n// Construcción HTML limpia (sin estilos inline)\nvar html = `\n<div class=\"notif-container\">\n    <table class=\"notif-table\">\n        <thead>\n            <tr>\n                <th>Hora</th>\n                <th>Congelador</th>\n                <th>Estado</th>\n                <th>Mensaje</th>\n            </tr>\n        </thead>\n        <tbody>\n`;\n\nhist.forEach(function(n) {\n\n    var badge = 'badge-normal';\n    var textoEstado = 'Normal';\n\n    if (n.tipo === 'TEMP_CRÍTICA') {\n        badge = 'badge-critica';\n        textoEstado = 'Crítica';\n    } \n    else if (n.tipo === 'TEMP_ELEVADA') {\n        badge = 'badge-alerta';\n        textoEstado = 'Alerta';\n    } \n    else if (n.tipo === 'SETPOINT') {\n        badge = 'badge-control';\n        textoEstado = 'Control';\n    } \n    else if (n.tipo === 'SENSOR_DAÑADO') {\n        badge = 'badge-critica';\n        textoEstado = 'Sensor';\n    }\n\n    html += `\n        <tr class=\"notif-row\">\n            <td>${n.hora}</td>\n            <td><strong>${n.cong}</strong></td>\n            <td><span class=\"badge ${badge}\">${textoEstado}</span></td>\n            <td>${n.msg}</td>\n        </tr>\n    `;\n});\n\nhtml += `\n        </tbody>\n    </table>\n</div>\n`;\n\nmsg.payload = html;\nreturn msg;",
+    "outputs": 1,
+    "timeout": 0,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 1000,
+    "y": 1000,
+    "wires": [
+      [
+        "0adeaafe818df25c",
+        "email_switch_v2",
+        "d2fe91f666326d74"
+      ]
+    ]
+  },
+  {
+    "id": "0adeaafe818df25c",
+    "type": "ui_template",
+    "z": "c4e5af6920245a64",
+    "group": "b9862d2c920d7f15",
+    "name": "Tabla de notificaciones",
+    "order": 1,
+    "width": 12,
+    "height": 8,
+    "format": "<style>\n    .notif-container {\n        font-family: 'Segoe UI', sans-serif;\n        max-height: 380px;\n        overflow-y: auto;\n        border-radius: 14px;\n        background: #ffffff;\n        box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);\n    }\n\n    .notif-table {\n        width: 100%;\n        border-collapse: collapse;\n    }\n\n    /* Header */\n    .notif-table thead {\n        position: sticky;\n        top: 0;\n        background: #1e293b;\n        color: white;\n    }\n\n    .notif-table th {\n        padding: 12px;\n        font-size: 14px;\n        font-weight: 500;\n    }\n\n    /* Celdas */\n    .notif-table td {\n        padding: 12px;\n        font-size: 14px;\n        color: #333;\n    }\n\n    /* Filas */\n    .notif-row {\n        border-bottom: 1px solid #f0f0f0;\n        transition: background 0.2s;\n    }\n\n    .notif-row:hover {\n        background: #f9fafb;\n    }\n\n    /* Badges (colores suaves) */\n    .badge {\n        padding: 4px 10px;\n        border-radius: 999px;\n        font-size: 12px;\n        font-weight: 500;\n    }\n\n    /* Estados suaves */\n    .badge-critica {\n        background: #fee2e2;\n        color: #b91c1c;\n    }\n\n    .badge-alerta {\n        background: #fef3c7;\n        color: #92400e;\n    }\n\n    .badge-control {\n        background: #dbeafe;\n        color: #1e40af;\n    }\n\n    .badge-normal {\n        background: #dcfce7;\n        color: #166534;\n    }\n</style>\n\n<div ng-bind-html=\"msg.payload\"></div>",
+    "storeOutMessages": true,
+    "fwdInMessages": true,
+    "resendOnRefresh": true,
+    "templateScope": "local",
+    "className": "",
+    "x": 1540,
+    "y": 880,
+    "wires": [
+      []
+    ]
+  },
+  {
+    "id": "056e92b9ea0c93ac",
+    "type": "trigger",
+    "z": "c4e5af6920245a64",
+    "name": "Estado del sensor A",
+    "op1": "",
+    "op2": "{\"alerta_tipo\":\"SENSOR_DESCONECTADO\",\"alerta_msg\":\"⛔ Congelador A: sin señal por más de 10 segundos\",\"congelador\":\"A\"}",
+    "op1type": "nul",
+    "op2type": "json",
+    "duration": "10",
+    "extend": true,
+    "overrideDelay": false,
+    "units": "s",
+    "reset": "",
+    "bytopic": "all",
+    "topic": "topic",
+    "outputs": 1,
+    "x": 640,
+    "y": 960,
+    "wires": [
+      [
+        "0e25ab59fb175b2a"
+      ]
+    ]
+  },
+  {
+    "id": "8fbf929885462c54",
+    "type": "trigger",
+    "z": "c4e5af6920245a64",
+    "name": "Estado del sensor B",
+    "op1": "",
+    "op2": "{\"alerta_tipo\":\"SENSOR_DESCONECTADO\",\"alerta_msg\":\"⛔ Congelador B: sin señal por más de 10 segundos\",\"congelador\":\"B\"}",
+    "op1type": "nul",
+    "op2type": "json",
+    "duration": "10",
+    "extend": true,
+    "overrideDelay": false,
+    "units": "s",
+    "reset": "",
+    "bytopic": "all",
+    "topic": "topic",
+    "outputs": 1,
+    "x": 640,
+    "y": 1020,
+    "wires": [
+      [
+        "0e25ab59fb175b2a"
+      ]
+    ]
+  },
+  {
+    "id": "d6e028f6ce725da3",
+    "type": "trigger",
+    "z": "c4e5af6920245a64",
+    "name": "Estado del sensor C",
+    "op1": "",
+    "op2": "{\"alerta_tipo\":\"SENSOR_DESCONECTADO\",\"alerta_msg\":\"⛔ Congelador C: sin señal por más de 10 segundos\",\"congelador\":\"C\"}",
+    "op1type": "nul",
+    "op2type": "json",
+    "duration": "10",
+    "extend": true,
+    "overrideDelay": false,
+    "units": "s",
+    "reset": "",
+    "bytopic": "all",
+    "topic": "topic",
+    "outputs": 1,
+    "x": 640,
+    "y": 1080,
+    "wires": [
+      [
+        "0e25ab59fb175b2a"
+      ]
+    ]
+  },
+  {
+    "id": "9ee6f48b878e08d0",
+    "type": "ui_slider",
+    "z": "c4e5af6920245a64",
+    "name": "Control de temperatura A",
+    "label": "Control de temperatura (°C)",
+    "tooltip": "",
+    "group": "cf52349c92b4595b",
+    "order": 10,
+    "width": 6,
+    "height": 1,
+    "passthru": true,
+    "outs": "all",
+    "topic": "A",
+    "topicType": "str",
+    "min": -40,
+    "max": -5,
+    "step": 1,
+    "className": "",
+    "x": 660,
+    "y": 1200,
+    "wires": [
+      [
+        "88329af4972b00c1"
+      ]
+    ]
+  },
+  {
+    "id": "fca6a3f3dd0fad49",
+    "type": "ui_slider",
+    "z": "c4e5af6920245a64",
+    "name": "Control de temperatura B",
+    "label": "Control de temperatura (°C)",
+    "tooltip": "",
+    "group": "992752971a20e668",
+    "order": 10,
+    "width": 6,
+    "height": 1,
+    "passthru": true,
+    "outs": "all",
+    "topic": "B",
+    "topicType": "str",
+    "min": -40,
+    "max": -5,
+    "step": 1,
+    "className": "",
+    "x": 660,
+    "y": 1240,
+    "wires": [
+      [
+        "88329af4972b00c1"
+      ]
+    ]
+  },
+  {
+    "id": "f02c0c38ec3c0578",
+    "type": "ui_slider",
+    "z": "c4e5af6920245a64",
+    "name": "Control de temperatura C",
+    "label": "Control de temperatura (°C)",
+    "tooltip": "",
+    "group": "6129b16b94677491",
+    "order": 10,
+    "width": 6,
+    "height": 1,
+    "passthru": true,
+    "outs": "all",
+    "topic": "C",
+    "topicType": "str",
+    "min": -40,
+    "max": -5,
+    "step": 1,
+    "className": "",
+    "x": 660,
+    "y": 1280,
+    "wires": [
+      [
+        "88329af4972b00c1"
+      ]
+    ]
+  },
+  {
+    "id": "88329af4972b00c1",
+    "type": "function",
+    "z": "c4e5af6920245a64",
+    "name": "Regulación de temperatura",
+    "func": "var setpoint   = msg.payload;\nvar congelador = msg.topic;   // 'A', 'B' o 'C'\nvar temp_actual = global.get('temp_' + congelador) || 0;\n\nglobal.set('setpoint_' + congelador, setpoint);\n\nvar accion;\nif (temp_actual > setpoint + 1) {\n    accion = 'ENFRIAR';\n} else if (temp_actual < setpoint - 1) {\n    accion = 'CALENTAR';\n} else {\n    accion = 'MANTENER';\n}\n\n// Notificar el cambio de setpoint\nvar notifMsg = {\n    alerta_tipo: 'SETPOINT',\n    alerta_msg: '🎛 Congelador ' + congelador + ': setpoint ajustado a ' + setpoint + '°C — acción: ' + accion,\n    congelador: congelador\n};\nnode.send([msg, notifMsg]);\n\n// Publicar comando vía MQTT hacia el simulador.py\nmsg.payload = { congelador: congelador, setpoint: setpoint, accion: accion };\nmsg.topic   = 'pesquera/congelador/' + congelador + '/control';\nreturn null;",
+    "outputs": 2,
+    "timeout": 0,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 920,
+    "y": 1240,
+    "wires": [
+      [
+        "af1af8c982c67de9"
+      ],
+      [
+        "0e25ab59fb175b2a"
+      ]
+    ]
+  },
+  {
+    "id": "1c554ecffe56cacb",
+    "type": "function",
+    "z": "c4e5af6920245a64",
+    "name": "function 6",
+    "func": "msg.payload = msg.temp;\nreturn msg;",
+    "outputs": 1,
+    "timeout": 0,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 860,
+    "y": 160,
+    "wires": [
+      [
+        "56e979ef96b34929"
+      ]
+    ]
+  },
+  {
+    "id": "56e979ef96b34929",
+    "type": "ui_gauge",
+    "z": "c4e5af6920245a64",
+    "name": "",
+    "group": "cf52349c92b4595b",
+    "order": 1,
+    "width": 0,
+    "height": 0,
+    "gtype": "gage",
+    "title": "Temperatura",
+    "label": "units",
+    "format": "{{msg.temp}}",
+    "min": 0,
+    "max": "-50",
+    "colors": [
+      "#00b500",
+      "#e6e600",
+      "#ca3838"
+    ],
+    "seg1": "",
+    "seg2": "",
+    "diff": false,
+    "className": "",
+    "x": 1080,
+    "y": 160,
+    "wires": []
+  },
+  {
+    "id": "fad6e6a717582b0c",
+    "type": "function",
+    "z": "c4e5af6920245a64",
+    "name": "function 3",
+    "func": "msg.payload = msg.temp;\nreturn msg;",
+    "outputs": 1,
+    "timeout": 0,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 1000,
+    "y": 220,
+    "wires": [
+      [
+        "fb504f1a99321216"
+      ]
+    ]
+  },
+  {
+    "id": "fb504f1a99321216",
+    "type": "ui_chart",
+    "z": "c4e5af6920245a64",
+    "name": "",
+    "group": "cf52349c92b4595b",
+    "order": 2,
+    "width": 0,
+    "height": 0,
+    "label": "Grafico",
+    "chartType": "line",
+    "legend": "false",
+    "xformat": "HH:mm:ss",
+    "interpolate": "linear",
+    "nodata": "",
+    "dot": false,
+    "ymin": "",
+    "ymax": "",
+    "removeOlder": 1,
+    "removeOlderPoints": "",
+    "removeOlderUnit": "3600",
+    "cutout": 0,
+    "useOneColor": false,
+    "useUTC": false,
+    "colors": [
+      "#1f77b4",
+      "#aec7e8",
+      "#ff7f0e",
+      "#2ca02c",
+      "#98df8a",
+      "#d62728",
+      "#ff9896",
+      "#9467bd",
+      "#c5b0d5"
+    ],
+    "outputs": 1,
+    "useDifferentColor": false,
+    "className": "",
+    "x": 1200,
+    "y": 220,
+    "wires": [
+      []
+    ]
+  },
+  {
+    "id": "3a4dba1f1caf5e13",
+    "type": "ui_text",
+    "z": "c4e5af6920245a64",
+    "group": "cf52349c92b4595b",
+    "order": 0,
+    "width": 0,
+    "height": 0,
+    "name": "",
+    "label": "",
+    "format": "Temperatura: {{msg.temp}} °C",
+    "layout": "row-spread",
+    "className": "",
+    "style": false,
+    "font": "",
+    "fontSize": 16,
+    "color": "#000000",
+    "x": 890,
+    "y": 100,
+    "wires": []
+  },
+  {
+    "id": "7c54f06b4be553d7",
+    "type": "ui_text",
+    "z": "c4e5af6920245a64",
+    "group": "cf52349c92b4595b",
+    "order": 3,
+    "width": 0,
+    "height": 0,
+    "name": "",
+    "label": "",
+    "format": "Humedad: {{msg.hum}} %",
+    "layout": "row-spread",
+    "className": "",
+    "style": false,
+    "font": "",
+    "fontSize": 16,
+    "color": "#000000",
+    "x": 950,
+    "y": 270,
+    "wires": []
+  },
+  {
+    "id": "661c6bd71f977aa5",
+    "type": "ui_text",
+    "z": "c4e5af6920245a64",
+    "group": "cf52349c92b4595b",
+    "order": 4,
+    "width": 0,
+    "height": 0,
+    "name": "",
+    "label": "",
+    "format": "Especie: {{msg.esp}}",
+    "layout": "row-spread",
+    "className": "",
+    "style": false,
+    "font": "",
+    "fontSize": 16,
+    "color": "#000000",
+    "x": 950,
+    "y": 310,
+    "wires": []
+  },
+  {
+    "id": "816e9b8ab59e8e74",
+    "type": "ui_text",
+    "z": "c4e5af6920245a64",
+    "group": "cf52349c92b4595b",
+    "order": 5,
+    "width": 0,
+    "height": 0,
+    "name": "",
+    "label": "",
+    "format": "<div style=\"font-size:20px\"> 🚨  <span style=\"color: {{msg.estado === 'CRÍTICO' ? 'red' : (msg.estado === 'ALERTA' ? 'orange' : 'green')}}\"> {{msg.estado}} </span> </div>",
+    "layout": "row-spread",
+    "className": "",
+    "style": false,
+    "font": "",
+    "fontSize": 16,
+    "color": "#000000",
+    "x": 1070,
+    "y": 350,
+    "wires": []
+  },
+  {
+    "id": "f6de6bc2ee3ab51b",
+    "type": "ui_text",
+    "z": "c4e5af6920245a64",
+    "group": "cf52349c92b4595b",
+    "order": 6,
+    "width": 0,
+    "height": 0,
+    "name": "",
+    "label": "",
+    "format": "Tiempo almacenamiento: {{msg.tiempo}} h",
+    "layout": "row-spread",
+    "className": "",
+    "style": false,
+    "font": "",
+    "fontSize": 14,
+    "color": "#000000",
+    "x": 1000,
+    "y": 390,
+    "wires": []
+  },
+  {
+    "id": "ac4bb9b4ec112815",
+    "type": "function",
+    "z": "c4e5af6920245a64",
+    "name": "function 7",
+    "func": "msg.payload = msg.temp;\nreturn msg;",
+    "outputs": 1,
+    "timeout": 0,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 940,
+    "y": 440,
+    "wires": [
+      [
+        "b0d1f53f28db6442"
+      ]
+    ]
+  },
+  {
+    "id": "b0d1f53f28db6442",
+    "type": "ui_gauge",
+    "z": "c4e5af6920245a64",
+    "name": "",
+    "group": "992752971a20e668",
+    "order": 1,
+    "width": 0,
+    "height": 0,
+    "gtype": "gage",
+    "title": "Temperatura",
+    "label": "units",
+    "format": "{{msg.temp}}",
+    "min": 0,
+    "max": "-50",
+    "colors": [
+      "#00b500",
+      "#e6e600",
+      "#ca3838"
+    ],
+    "seg1": "",
+    "seg2": "",
+    "diff": false,
+    "className": "",
+    "x": 1170,
+    "y": 440,
+    "wires": []
+  },
+  {
+    "id": "7c4697132a069a9e",
+    "type": "function",
+    "z": "c4e5af6920245a64",
+    "name": "function 4",
+    "func": "msg.payload = msg.temp;\nreturn msg;",
+    "outputs": 1,
+    "timeout": 0,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 1000,
+    "y": 500,
+    "wires": [
+      [
+        "21bf50012088254a"
+      ]
+    ]
+  },
+  {
+    "id": "21bf50012088254a",
+    "type": "ui_chart",
+    "z": "c4e5af6920245a64",
+    "name": "",
+    "group": "992752971a20e668",
+    "order": 2,
+    "width": 0,
+    "height": 0,
+    "label": "Grafico",
+    "chartType": "line",
+    "legend": "false",
+    "xformat": "HH:mm:ss",
+    "interpolate": "linear",
+    "nodata": "",
+    "dot": false,
+    "ymin": "",
+    "ymax": "",
+    "removeOlder": 1,
+    "removeOlderPoints": "",
+    "removeOlderUnit": "3600",
+    "cutout": 0,
+    "useOneColor": false,
+    "useUTC": false,
+    "colors": [
+      "#1f77b4",
+      "#aec7e8",
+      "#ff7f0e",
+      "#2ca02c",
+      "#98df8a",
+      "#d62728",
+      "#ff9896",
+      "#9467bd",
+      "#c5b0d5"
+    ],
+    "outputs": 1,
+    "useDifferentColor": false,
+    "className": "",
+    "x": 1200,
+    "y": 500,
+    "wires": [
+      []
+    ]
+  },
+  {
+    "id": "2f57583c4702085a",
+    "type": "ui_text",
+    "z": "c4e5af6920245a64",
+    "group": "992752971a20e668",
+    "order": 0,
+    "width": 0,
+    "height": 0,
+    "name": "",
+    "label": "",
+    "format": "Temperatura: {{msg.temp}} °C",
+    "layout": "row-spread",
+    "className": "",
+    "style": false,
+    "font": "",
+    "fontSize": 16,
+    "color": "#000000",
+    "x": 950,
+    "y": 380,
+    "wires": []
+  },
+  {
+    "id": "76433b56a4544f52",
+    "type": "ui_text",
+    "z": "c4e5af6920245a64",
+    "group": "992752971a20e668",
+    "order": 3,
+    "width": 0,
+    "height": 0,
+    "name": "",
+    "label": "",
+    "format": "Humedad: {{msg.hum}} %",
+    "layout": "row-spread",
+    "className": "",
+    "style": false,
+    "font": "",
+    "fontSize": 16,
+    "color": "#000000",
+    "x": 1010,
+    "y": 540,
+    "wires": []
+  },
+  {
+    "id": "d633630718550e4b",
+    "type": "ui_text",
+    "z": "c4e5af6920245a64",
+    "group": "992752971a20e668",
+    "order": 4,
+    "width": 0,
+    "height": 0,
+    "name": "",
+    "label": "",
+    "format": "Especie: {{msg.esp}}",
+    "layout": "row-spread",
+    "className": "",
+    "style": false,
+    "font": "",
+    "fontSize": 16,
+    "color": "#000000",
+    "x": 1010,
+    "y": 580,
+    "wires": []
+  },
+  {
+    "id": "306c18978a66ec19",
+    "type": "ui_text",
+    "z": "c4e5af6920245a64",
+    "group": "992752971a20e668",
+    "order": 5,
+    "width": 0,
+    "height": 0,
+    "name": "",
+    "label": "",
+    "format": "<div style=\"font-size:20px\"> 🚨  <span style=\"color: {{msg.estado === 'CRÍTICO' ? 'red' : (msg.estado === 'ALERTA' ? 'orange' : 'green')}}\"> {{msg.estado}} </span> </div>",
+    "layout": "row-spread",
+    "className": "",
+    "style": false,
+    "font": "",
+    "fontSize": 16,
+    "color": "#000000",
+    "x": 1050,
+    "y": 620,
+    "wires": []
+  },
+  {
+    "id": "662d059e99361e2f",
+    "type": "ui_text",
+    "z": "c4e5af6920245a64",
+    "group": "992752971a20e668",
+    "order": 6,
+    "width": 0,
+    "height": 0,
+    "name": "",
+    "label": "",
+    "format": "Tiempo almacenamiento: {{msg.tiempo}} h",
+    "layout": "row-spread",
+    "className": "",
+    "style": false,
+    "font": "",
+    "fontSize": 14,
+    "color": "#000000",
+    "x": 1000,
+    "y": 660,
+    "wires": []
+  },
+  {
+    "id": "fcc6c45488d98d54",
+    "type": "function",
+    "z": "c4e5af6920245a64",
+    "name": "function 8",
+    "func": "msg.payload = msg.temp;\nreturn msg;",
+    "outputs": 1,
+    "timeout": 0,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 940,
+    "y": 700,
+    "wires": [
+      [
+        "bb7ee38b26844f29"
+      ]
+    ]
+  },
+  {
+    "id": "bb7ee38b26844f29",
+    "type": "ui_gauge",
+    "z": "c4e5af6920245a64",
+    "name": "",
+    "group": "6129b16b94677491",
+    "order": 1,
+    "width": 0,
+    "height": 0,
+    "gtype": "gage",
+    "title": "Temperatura",
+    "label": "units",
+    "format": "{{msg.temp}}",
+    "min": 0,
+    "max": "-50",
+    "colors": [
+      "#00b500",
+      "#e6e600",
+      "#ca3838"
+    ],
+    "seg1": "",
+    "seg2": "",
+    "diff": false,
+    "className": "",
+    "x": 1150,
+    "y": 700,
+    "wires": []
+  },
+  {
+    "id": "5b087549265d8b38",
+    "type": "function",
+    "z": "c4e5af6920245a64",
+    "name": "function 5",
+    "func": "msg.payload = msg.temp;\nreturn msg;",
+    "outputs": 1,
+    "timeout": 0,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 1000,
+    "y": 760,
+    "wires": [
+      [
+        "91d4ff8766a4a47e"
+      ]
+    ]
+  },
+  {
+    "id": "91d4ff8766a4a47e",
+    "type": "ui_chart",
+    "z": "c4e5af6920245a64",
+    "name": "",
+    "group": "6129b16b94677491",
+    "order": 2,
+    "width": 0,
+    "height": 0,
+    "label": "Grafico",
+    "chartType": "line",
+    "legend": "false",
+    "xformat": "HH:mm:ss",
+    "interpolate": "linear",
+    "nodata": "",
+    "dot": false,
+    "ymin": "",
+    "ymax": "",
+    "removeOlder": 1,
+    "removeOlderPoints": "",
+    "removeOlderUnit": "3600",
+    "cutout": 0,
+    "useOneColor": false,
+    "useUTC": false,
+    "colors": [
+      "#1f77b4",
+      "#aec7e8",
+      "#ff7f0e",
+      "#2ca02c",
+      "#98df8a",
+      "#d62728",
+      "#ff9896",
+      "#9467bd",
+      "#c5b0d5"
+    ],
+    "outputs": 1,
+    "useDifferentColor": false,
+    "className": "",
+    "x": 1200,
+    "y": 760,
+    "wires": [
+      []
+    ]
+  },
+  {
+    "id": "1fbdfa4b8bc72b5a",
+    "type": "ui_text",
+    "z": "c4e5af6920245a64",
+    "group": "6129b16b94677491",
+    "order": 0,
+    "width": 0,
+    "height": 0,
+    "name": "",
+    "label": "",
+    "format": "Temperatura: {{msg.temp}} °C",
+    "layout": "row-spread",
+    "className": "",
+    "style": false,
+    "font": "",
+    "fontSize": 16,
+    "color": "#000000",
+    "x": 890,
+    "y": 640,
+    "wires": []
+  },
+  {
+    "id": "ac31952f0200a03f",
+    "type": "ui_text",
+    "z": "c4e5af6920245a64",
+    "group": "6129b16b94677491",
+    "order": 3,
+    "width": 0,
+    "height": 0,
+    "name": "",
+    "label": "",
+    "format": "Humedad: {{msg.hum}} %",
+    "layout": "row-spread",
+    "className": "",
+    "style": false,
+    "font": "",
+    "fontSize": 16,
+    "color": "#000000",
+    "x": 950,
+    "y": 800,
+    "wires": []
+  },
+  {
+    "id": "6eb8a97ef07dce77",
+    "type": "ui_text",
+    "z": "c4e5af6920245a64",
+    "group": "6129b16b94677491",
+    "order": 4,
+    "width": 0,
+    "height": 0,
+    "name": "",
+    "label": "",
+    "format": "Especie: {{msg.esp}}",
+    "layout": "row-spread",
+    "className": "",
+    "style": false,
+    "font": "",
+    "fontSize": 16,
+    "color": "#000000",
+    "x": 950,
+    "y": 840,
+    "wires": []
+  },
+  {
+    "id": "b2f570cffb97c5b6",
+    "type": "ui_text",
+    "z": "c4e5af6920245a64",
+    "group": "6129b16b94677491",
+    "order": 5,
+    "width": 0,
+    "height": 0,
+    "name": "",
+    "label": "",
+    "format": "<div style=\"font-size:20px\"> 🚨  <span style=\"color: {{msg.estado === 'CRÍTICO' ? 'red' : (msg.estado === 'ALERTA' ? 'orange' : 'green')}}\"> {{msg.estado}} </span> </div>",
+    "layout": "row-spread",
+    "className": "",
+    "style": false,
+    "font": "",
+    "fontSize": 16,
+    "color": "#000000",
+    "x": 930,
+    "y": 880,
+    "wires": []
+  },
+  {
+    "id": "bbaf3b629f1d1d62",
+    "type": "ui_text",
+    "z": "c4e5af6920245a64",
+    "group": "6129b16b94677491",
+    "order": 6,
+    "width": 0,
+    "height": 0,
+    "name": "",
+    "label": "",
+    "format": "Tiempo almacenamiento: {{msg.tiempo}} h",
+    "layout": "row-spread",
+    "className": "",
+    "style": false,
+    "font": "",
+    "fontSize": 14,
+    "color": "#000000",
+    "x": 980,
+    "y": 920,
+    "wires": []
+  },
+  {
+    "id": "1cd053aa18acf750",
+    "type": "ui_template",
+    "z": "c4e5af6920245a64",
+    "group": "990ac1925161468b",
+    "name": "",
+    "order": 0,
+    "width": 0,
+    "height": 0,
+    "format": "<div style=\"padding: 10px;\">\n    <a href=\"http://localhost:5001/historial\" target=\"_blank\" style=\"\n       background: #00c8e0;\n       color: #0a0f14;\n       padding: 10px 20px;\n       font-weight: bold;\n       text-decoration: none;\n       border-radius: 4px;\n       font-family: monospace;\n       font-size: 14px;\n     \">\n        📋 Ver Historial de Congeladores\n    </a>\n</div>",
+    "storeOutMessages": true,
+    "fwdInMessages": true,
+    "resendOnRefresh": true,
+    "templateScope": "local",
+    "className": "",
+    "x": 220,
+    "y": 480,
+    "wires": [
+      []
+    ]
+  },
+  {
+    "id": "bcbbc5e3961f6f08",
+    "type": "function",
+    "z": "c4e5af6920245a64",
+    "name": "Estado Cuarto Frío",
+    "func": "// Actualizar estado de este congelador en contexto global\nvar cong  = msg.congelador;\nvar temp  = msg.temp;\nvar hum   = msg.hum;\nvar esp   = msg.esp;\nvar est   = msg.estado;\n\nvar estado = global.get('cuarto_estado') || { A: null, B: null, C: null };\nestado[cong] = { temp: temp, hum: hum, esp: esp, estado: est, hora: new Date().toTimeString().slice(0,8) };\nglobal.set('cuarto_estado', estado);\n\n// Determinar estado general del cuarto\nvar critico = false;\nvar alerta  = false;\n['A','B','C'].forEach(function(c) {\n    if (!estado[c]) return;\n    if (estado[c].estado === 'CRÍTICO') critico = true;\n    if (estado[c].estado === 'ALERTA')  alerta  = true;\n});\n\nvar estadoGeneral = critico ? '🔴 CRÍTICO' : alerta ? '🟠 ALERTA' : '🟢 NORMAL';\nvar colorGeneral  = critico ? '#b91c1c'    : alerta  ? '#92400e'  : '#166534';\nvar bgGeneral     = critico ? '#fee2e2'    : alerta   ? '#fef3c7'  : '#dcfce7';\n\n// Construir HTML del panel resumen\nvar html = '<div style=\"font-family:Segoe UI,sans-serif;padding:8px\">';\n\n// Banner de estado general\nhtml += '<div style=\"background:' + bgGeneral + ';color:' + colorGeneral + ';';\nhtml += 'border-radius:10px;padding:12px 20px;margin-bottom:12px;font-size:18px;font-weight:600;text-align:center\">';\nhtml += 'Estado General del Cuarto Frío: ' + estadoGeneral + '</div>';\n\n// Tarjetas de cada congelador\nhtml += '<div style=\"display:flex;gap:12px;flex-wrap:wrap\">';\n['A','B','C'].forEach(function(c) {\n    var d = estado[c];\n    if (!d) {\n        html += '<div style=\"flex:1;min-width:200px;background:#f1f5f9;border-radius:10px;padding:14px\">';\n        html += '<div style=\"font-weight:600;color:#64748b\">Congelador ' + c + '</div>';\n        html += '<div style=\"color:#94a3b8;font-size:13px;margin-top:6px\">Sin datos aún...</div></div>';\n        return;\n    }\n    var bc = d.estado === 'CRÍTICO' ? '#fee2e2' : d.estado === 'ALERTA' ? '#fef3c7' : '#f0fdf4';\n    var tc = d.estado === 'CRÍTICO' ? '#b91c1c' : d.estado === 'ALERTA' ? '#92400e' : '#166534';\n    var em = d.estado === 'CRÍTICO' ? '🔴' : d.estado === 'ALERTA' ? '🟠' : '🟢';\n    html += '<div style=\"flex:1;min-width:200px;background:' + bc + ';border-radius:10px;padding:14px;border:1px solid ' + tc + '33\">';\n    html += '<div style=\"font-weight:700;font-size:15px;color:' + tc + '\">' + em + ' Congelador ' + c + '</div>';\n    html += '<div style=\"margin-top:8px;font-size:13px;color:#334155\">';\n    html += '<div>🌡 <b>' + d.temp + ' °C</b></div>';\n    html += '<div>💧 Humedad: ' + d.hum + '%</div>';\n    html += '<div>🐟 Especie: ' + d.esp + '</div>';\n    html += '<div style=\"color:#94a3b8;font-size:11px;margin-top:4px\">Actualizado: ' + d.hora + '</div>';\n    html += '</div></div>';\n});\nhtml += '</div></div>';\n\nmsg.payload = html;\nreturn msg;",
+    "outputs": 1,
+    "timeout": 0,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 900,
+    "y": 1450,
+    "wires": [
+      [
+        "59cca0702391a340"
+      ]
+    ]
+  },
+  {
+    "id": "59cca0702391a340",
+    "type": "ui_template",
+    "z": "c4e5af6920245a64",
+    "group": "2f79b76d202027a5",
+    "name": "Panel Cuarto Frío",
+    "order": 1,
+    "width": 12,
+    "height": 6,
+    "format": "<div ng-bind-html=\"msg.payload\"></div>",
+    "storeOutMessages": true,
+    "fwdInMessages": true,
+    "resendOnRefresh": true,
+    "templateScope": "local",
+    "className": "",
+    "x": 1150,
+    "y": 1450,
+    "wires": [
+      []
+    ]
+  },
+  {
+    "id": "d5f863b18ea23281",
+    "type": "inject",
+    "z": "c4e5af6920245a64",
+    "name": "Verificar internet cada 30s",
+    "props": [
+      {
+        "p": "payload"
+      }
+    ],
+    "repeat": "30",
+    "crontab": "",
+    "once": true,
+    "onceDelay": 2,
+    "topic": "",
+    "payload": "",
+    "payloadType": "date",
+    "x": 200,
+    "y": 1560,
+    "wires": [
+      [
+        "b6eacfc435d882a7"
+      ]
+    ]
+  },
+  {
+    "id": "b6eacfc435d882a7",
+    "type": "http request",
+    "z": "c4e5af6920245a64",
+    "name": "Ping Google",
+    "method": "GET",
+    "ret": "txt",
+    "paytoqs": "ignore",
+    "url": "http://www.google.com",
+    "tls": "",
+    "persist": false,
+    "proxy": "",
+    "insecureHTTPParser": false,
+    "authType": "",
+    "senderr": true,
+    "headers": [],
+    "x": 460,
+    "y": 1560,
+    "wires": [
+      [
+        "6ba1f78ef03b0381"
+      ]
+    ]
+  },
+  {
+    "id": "6ba1f78ef03b0381",
+    "type": "function",
+    "z": "c4e5af6920245a64",
+    "name": "Internet OK",
+    "func": "var prev = global.get('internet_estado') || 'OK';\nglobal.set('internet_estado', 'OK');\n\nmsg.internet = 'OK';\nmsg.internet_msg = '✅ Conexión a internet activa';\nmsg.internet_color = '#166534';\nmsg.internet_bg = '#dcfce7';\n\n// Solo notificar si venía de falla\nif (prev === 'FALLA') {\n    var hist = global.get('notificaciones') || [];\n    var hora = new Date().toTimeString().slice(0,8);\n    hist.unshift({ hora: hora, tipo: 'INTERNET_OK', msg: '✅ Conexión a internet restaurada', cong: 'SYS' });\n    global.set('notificaciones', hist);\n}\n\nreturn msg;",
+    "outputs": 1,
+    "timeout": 0,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 690,
+    "y": 1540,
+    "wires": [
+      [
+        "40b3c56787da0188",
+        "d283cf6640b538e1"
+      ]
+    ]
+  },
+  {
+    "id": "f4b9947e84364068",
+    "type": "function",
+    "z": "c4e5af6920245a64",
+    "name": "Internet FALLA",
+    "func": "var prev = global.get('internet_estado') || 'OK';\nglobal.set('internet_estado', 'FALLA');\n\nmsg.internet = 'FALLA';\nmsg.internet_msg = '❌ Sin conexión a internet';\nmsg.internet_color = '#b91c1c';\nmsg.internet_bg = '#fee2e2';\n\n// Solo notificar si es nueva falla\nif (prev !== 'FALLA') {\n    var hist = global.get('notificaciones') || [];\n    var hora = new Date().toTimeString().slice(0,8);\n    hist.unshift({ hora: hora, tipo: 'INTERNET_FALLA', msg: '❌ Pérdida de conexión a internet detectada', cong: 'SYS' });\n    global.set('notificaciones', hist);\n    global.set('ultima_alerta_SYS', 'INTERNET_FALLA');\n}\n\nreturn msg;",
+    "outputs": 1,
+    "timeout": 0,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 690,
+    "y": 1590,
+    "wires": [
+      [
+        "40b3c56787da0188",
+        "d283cf6640b538e1"
+      ]
+    ]
+  },
+  {
+    "id": "40b3c56787da0188",
+    "type": "function",
+    "z": "c4e5af6920245a64",
+    "name": "HTML Internet",
+    "func": "var estado = msg.internet || global.get('internet_estado') || 'OK';\nvar color  = estado === 'OK' ? '#166534' : '#b91c1c';\nvar bg     = estado === 'OK' ? '#dcfce7' : '#fee2e2';\nvar texto  = estado === 'OK' ? '✅ Conexión activa' : '❌ Sin conexión';\nvar hora   = new Date().toTimeString().slice(0,8);\n\nvar html = '<div style=\"font-family:Segoe UI,sans-serif;padding:10px\">';\nhtml += '<div style=\"display:flex;align-items:center;gap:16px;background:' + bg + ';';\nhtml += 'border-radius:10px;padding:14px 20px\">';\nhtml += '<div style=\"font-size:36px\">' + (estado === 'OK' ? '🌐' : '🔌') + '</div>';\nhtml += '<div>';\nhtml += '<div style=\"font-size:18px;font-weight:700;color:' + color + '\">' + texto + '</div>';\nhtml += '<div style=\"font-size:12px;color:#64748b;margin-top:3px\">Última verificación: ' + hora + ' · Intervalo: cada 30 seg</div>';\nhtml += '</div></div></div>';\n\nmsg.payload = html;\nreturn msg;",
+    "outputs": 1,
+    "timeout": 0,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 930,
+    "y": 1560,
+    "wires": [
+      [
+        "7ecbe7953b8fb62f"
+      ]
+    ]
+  },
+  {
+    "id": "d283cf6640b538e1",
+    "type": "function",
+    "z": "c4e5af6920245a64",
+    "name": "Notif Internet → tabla",
+    "func": "// Reconstruir tabla de notificaciones (reutiliza la lógica del generador)\nvar hist = global.get('notificaciones') || [];\nif (hist.length === 0) { return null; }\n\nvar html = '<div class=\"notif-container\"><table class=\"notif-table\">';\nhtml += '<thead><tr><th>Hora</th><th>Congelador</th><th>Estado</th><th>Mensaje</th></tr></thead><tbody>';\n\nhist.forEach(function(n) {\n    var badge = 'badge-normal';\n    var textoEstado = 'Normal';\n    if (n.tipo === 'TEMP_CRÍTICA' || n.tipo === 'INTERNET_FALLA' || n.tipo === 'SENSOR_DAÑADO') { badge = 'badge-critica'; textoEstado = n.tipo === 'INTERNET_FALLA' ? 'Internet' : 'Crítica'; }\n    else if (n.tipo === 'TEMP_ELEVADA') { badge = 'badge-alerta'; textoEstado = 'Alerta'; }\n    else if (n.tipo === 'SETPOINT') { badge = 'badge-control'; textoEstado = 'Control'; }\n    else if (n.tipo === 'INTERNET_OK') { badge = 'badge-normal'; textoEstado = 'Internet'; }\n    html += '<tr class=\"notif-row\"><td>' + n.hora + '</td>';\n    html += '<td><strong>' + n.cong + '</strong></td>';\n    html += '<td><span class=\"badge ' + badge + '\">' + textoEstado + '</span></td>';\n    html += '<td>' + n.msg + '</td></tr>';\n});\nhtml += '</tbody></table></div>';\nmsg.payload = html;\nreturn msg;",
+    "outputs": 1,
+    "timeout": 0,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 930,
+    "y": 1620,
+    "wires": [
+      [
+        "0e25ab59fb175b2a"
+      ]
+    ]
+  },
+  {
+    "id": "7ecbe7953b8fb62f",
+    "type": "ui_template",
+    "z": "c4e5af6920245a64",
+    "group": "13e8d0fb1fe07dd1",
+    "name": "Estado Internet",
+    "order": 1,
+    "width": 12,
+    "height": 3,
+    "format": "<div ng-bind-html=\"msg.payload\"></div>",
+    "storeOutMessages": true,
+    "fwdInMessages": true,
+    "resendOnRefresh": true,
+    "templateScope": "local",
+    "className": "",
+    "x": 1160,
+    "y": 1560,
+    "wires": [
+      []
+    ]
+  },
+  {
+    "id": "email_switch_v2",
+    "type": "switch",
+    "z": "c4e5af6920245a64",
+    "name": "¿Requiere email?",
+    "property": "alerta_tipo",
+    "propertyType": "msg",
+    "rules": [
+      {
+        "t": "eq",
+        "v": "TEMP_CRÍTICA",
+        "vt": "str"
+      },
+      {
+        "t": "eq",
+        "v": "TEMP_ELEVADA",
+        "vt": "str"
+      },
+      {
+        "t": "eq",
+        "v": "SENSOR_DAÑADO",
+        "vt": "str"
+      },
+      {
+        "t": "eq",
+        "v": "SENSOR_DESCONECTADO",
+        "vt": "str"
+      }
+    ],
+    "checkall": "false",
+    "repair": false,
+    "outputs": 4,
+    "x": 1350,
+    "y": 1020,
+    "wires": [
+      [
+        "email_func_v2"
+      ],
+      [
+        "email_func_v2"
+      ],
+      [
+        "email_func_v2"
+      ],
+      [
+        "email_func_v2"
+      ]
+    ]
+  },
+  {
+    "id": "email_func_v2",
+    "type": "function",
+    "z": "c4e5af6920245a64",
+    "name": "Preparar payload Flask",
+    "func": "// Anti-spam: un email por congelador cada 10 minutos\nvar cong = msg.congelador || '?';\nvar key  = 'last_email_' + cong;\nvar last = global.get(key) || 0;\nvar now  = Date.now();\nif (now - last < 300000) { return null; }\nglobal.set(key, now);\n\nmsg.payload = {\n    congelador: cong,\n    alerta_tipo: msg.alerta_tipo || '',\n    temperatura: msg.temp || null,\n    especie: msg.esp || '',\n    alerta_msg: msg.alerta_msg || ''\n};\nmsg.headers = { 'Content-Type': 'application/json' };\nreturn msg;",
+    "outputs": 1,
+    "timeout": 0,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 1490,
+    "y": 1160,
+    "wires": [
+      [
+        "email_http_request_v2"
+      ]
+    ]
+  },
+  {
+    "id": "email_http_request_v2",
+    "type": "http request",
+    "z": "c4e5af6920245a64",
+    "name": "POST → Flask /alerta-email",
+    "method": "POST",
+    "ret": "txt",
+    "paytoqs": "ignore",
+    "url": "http://localhost:5001/alerta-email",
+    "tls": "",
+    "persist": false,
+    "proxy": "",
+    "insecureHTTPParser": false,
+    "authType": "",
+    "senderr": false,
+    "x": 1800,
+    "y": 980,
+    "wires": [
+      []
+    ]
+  },
+  {
+    "id": "d2fe91f666326d74",
+    "type": "debug",
+    "z": "c4e5af6920245a64",
+    "name": "debug 1",
+    "active": false,
+    "tosidebar": true,
+    "console": false,
+    "tostatus": false,
+    "complete": "false",
+    "statusVal": "",
+    "statusType": "auto",
+    "x": 1200,
+    "y": 1100,
+    "wires": []
+  },
+  {
+    "id": "78343014686507df",
+    "type": "mqtt-broker",
+    "name": "HiveMQ Cloud",
+    "broker": "0b158edb9649430e9bf6c29ac988da7f.s1.eu.hivemq.cloud",
+    "port": 8883,
+    "clientid": "",
+    "autoConnect": true,
+    "usetls": true,
+    "protocolVersion": 4,
+    "keepalive": 60,
+    "cleansession": true,
+    "autoUnsubscribe": true,
+    "birthTopic": "",
+    "birthQos": "0",
+    "birthRetain": "false",
+    "birthPayload": "",
+    "birthMsg": {},
+    "closeTopic": "",
+    "closeQos": "0",
+    "closeRetain": "false",
+    "closePayload": "",
+    "closeMsg": {},
+    "willTopic": "",
+    "willQos": "0",
+    "willRetain": "false",
+    "willPayload": "",
+    "willMsg": {},
+    "userProps": "",
+    "sessionExpiry": "",
+    "tls": "",
+    "credentials": {
+      "user": "pesquera",
+      "password": "Pesquera2026!"
     }
+  },
+  {
+    "id": "b9862d2c920d7f15",
+    "type": "ui_group",
+    "name": "Sistema",
+    "tab": "41b2297bd3a11a6c",
+    "order": 2,
+    "disp": true,
+    "width": "12",
+    "collapse": false,
+    "className": ""
+  },
+  {
+    "id": "cf52349c92b4595b",
+    "type": "ui_group",
+    "name": "Congelador A",
+    "tab": "98f361344255b483",
+    "order": 1,
+    "disp": true,
+    "width": "8",
+    "collapse": false,
+    "className": ""
+  },
+  {
+    "id": "992752971a20e668",
+    "type": "ui_group",
+    "name": "Congelador B",
+    "tab": "98f361344255b483",
+    "order": 2,
+    "disp": true,
+    "width": "8",
+    "collapse": false,
+    "className": ""
+  },
+  {
+    "id": "6129b16b94677491",
+    "type": "ui_group",
+    "name": "Congelador C",
+    "tab": "98f361344255b483",
+    "order": 3,
+    "disp": true,
+    "width": "8",
+    "collapse": false,
+    "className": ""
+  },
+  {
+    "id": "990ac1925161468b",
+    "type": "ui_group",
+    "name": "Historial",
+    "tab": "14091d6d21dd393e",
+    "order": 1,
+    "disp": true,
+    "width": "24",
+    "collapse": false,
+    "className": ""
+  },
+  {
+    "id": "2f79b76d202027a5",
+    "type": "ui_group",
+    "name": "Estado del Cuarto Frío",
+    "tab": "41b2297bd3a11a6c",
+    "order": 1,
+    "disp": true,
+    "width": "12",
+    "collapse": false,
+    "className": ""
+  },
+  {
+    "id": "13e8d0fb1fe07dd1",
+    "type": "ui_group",
+    "name": "Conectividad Internet",
+    "tab": "41b2297bd3a11a6c",
+    "order": 3,
+    "disp": true,
+    "width": "12",
+    "collapse": false,
+    "className": ""
+  },
+  {
+    "id": "41b2297bd3a11a6c",
+    "type": "ui_tab",
+    "name": "General",
+    "icon": "home",
+    "disabled": false,
+    "hidden": false
+  },
+  {
+    "id": "98f361344255b483",
+    "type": "ui_tab",
+    "name": "Congeladores",
+    "icon": "ac_unit",
+    "disabled": false,
+    "hidden": false
+  },
+  {
+    "id": "14091d6d21dd393e",
+    "type": "ui_tab",
+    "name": "Historial",
+    "icon": "history",
+    "disabled": false,
+    "hidden": false
+  },
+  {
+    "id": "a291b267ba6d0eda",
+    "type": "global-config",
+    "env": [],
+    "modules": {
+      "node-red-dashboard": "3.6.6"
+    }
+  }
 ]
