@@ -1081,7 +1081,7 @@
     "order": 0,
     "width": 0,
     "height": 0,
-    "format": "<div style=\"padding: 10px;\">\n    <a href=\"http://localhost:5001/historial\" target=\"_blank\" style=\"\n       background: #00c8e0;\n       color: #0a0f14;\n       padding: 10px 20px;\n       font-weight: bold;\n       text-decoration: none;\n       border-radius: 4px;\n       font-family: monospace;\n       font-size: 14px;\n     \">\n        📋 Ver Historial de Congeladores\n    </a>\n</div>",
+    "format": "<div style=\"padding: 10px;\">\n    <a href=\"https://climalink-flask.onrender.com/historial\" target=\"_blank\" style=\"\n       background: #00c8e0;\n       color: #0a0f14;\n       padding: 10px 20px;\n       font-weight: bold;\n       text-decoration: none;\n       border-radius: 4px;\n       font-family: monospace;\n       font-size: 14px;\n     \">\n        📋 Ver Historial de Congeladores\n    </a>\n</div>",
     "storeOutMessages": true,
     "fwdInMessages": true,
     "resendOnRefresh": true,
@@ -1363,7 +1363,7 @@
     "method": "POST",
     "ret": "txt",
     "paytoqs": "ignore",
-    "url": "http://localhost:5001/alerta-email",
+    "url": "https://climalink-flask.onrender.com/alerta-email",
     "tls": "",
     "persist": false,
     "proxy": "",
@@ -1398,6 +1398,7 @@
     "name": "HiveMQ Cloud",
     "broker": "0b158edb9649430e9bf6c29ac988da7f.s1.eu.hivemq.cloud",
     "port": 8883,
+    "tls": "",
     "clientid": "",
     "autoConnect": true,
     "usetls": true,
@@ -1422,7 +1423,6 @@
     "willMsg": {},
     "userProps": "",
     "sessionExpiry": "",
-    "tls": "",
     "credentials": {
       "user": "pesquera",
       "password": "Pesquera2026!"
@@ -1530,7 +1530,7 @@
     "hidden": false
   },
   {
-    "id": "a291b267ba6d0eda",
+    "id": "6e602d286340a316",
     "type": "global-config",
     "env": [],
     "modules": {
