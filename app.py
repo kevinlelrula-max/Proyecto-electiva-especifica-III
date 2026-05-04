@@ -1,7 +1,10 @@
-from flask import Flask, render_template, request, redirect, url_for, session, flash
+from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify
 import sqlite3
 import hashlib
 import secrets
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 
 app = Flask(__name__)
 app.secret_key = "climalink_pesquera_2026_secure"
@@ -39,6 +42,8 @@ def init_db():
             nombre TEXT NOT NULL,
             username TEXT UNIQUE NOT NULL,
             password TEXT NOT NULL,
+            email_alerta TEXT,
+            app_password TEXT,
             reset_token TEXT,
             activo INTEGER DEFAULT 1
         )
@@ -92,10 +97,12 @@ def login():
 @app.route("/registro", methods=["GET", "POST"])
 def registro():
     if request.method == "POST":
-        nombre = request.form.get("nombre", "").strip()
-        username = request.form.get("username", "").strip()
-        password = request.form.get("password", "").strip()
-        confirm = request.form.get("confirm", "").strip()
+        nombre       = request.form.get("nombre", "").strip()
+        username     = request.form.get("username", "").strip()
+        password     = request.form.get("password", "").strip()
+        confirm      = request.form.get("confirm", "").strip()
+        email_alerta = request.form.get("email_alerta", "").strip()
+        app_password = request.form.get("app_password", "").strip()
 
         if not nombre or not username or not password:
             flash("error|Todos los campos son obligatorios.")
@@ -109,11 +116,15 @@ def registro():
             flash("error|Las contraseñas no coinciden.")
             return render_template("registro.html")
 
+        if not email_alerta or not app_password:
+            flash("error|El correo y App Password son obligatorios para las alertas.")
+            return render_template("registro.html")
+
         try:
             conn = get_db()
             conn.execute(
-                "INSERT INTO usuarios (nombre, username, password) VALUES (?, ?, ?)",
-                (nombre, username, hash_password(password))
+                "INSERT INTO usuarios (nombre, username, password, email_alerta, app_password) VALUES (?, ?, ?, ?, ?)",
+                (nombre, username, hash_password(password), email_alerta, app_password)
             )
             conn.commit()
             conn.close()
@@ -250,6 +261,67 @@ def historial():
 def logout():
     session.clear()
     return redirect(url_for("login"))
+
+
+# ───────────────────────── ALERTA EMAIL ─────────────────────────
+
+@app.route("/alerta-email", methods=["POST"])
+def alerta_email():
+    try:
+        data = request.get_json()
+
+        # Obtener credenciales del último usuario activo
+        conn = get_db()
+        user = conn.execute(
+            "SELECT email_alerta, app_password FROM usuarios WHERE activo = 1 AND email_alerta IS NOT NULL ORDER BY id DESC LIMIT 1"
+        ).fetchone()
+        conn.close()
+
+        if not user or not user["email_alerta"] or not user["app_password"]:
+            return jsonify({"error": "No hay credenciales de email configuradas"}), 400
+
+        remitente  = user["email_alerta"]
+        password   = user["app_password"]
+        destinatario = user["email_alerta"]
+
+        congelador  = data.get("congelador", "?")
+        alerta_tipo = data.get("alerta_tipo", "")
+        temperatura = data.get("temperatura", "N/A")
+        especie     = data.get("especie", "N/A")
+        alerta_msg  = data.get("alerta_msg", "")
+
+        emoji = "🔴" if alerta_tipo == "TEMP_CRÍTICA" else "🟠" if alerta_tipo == "TEMP_ELEVADA" else "⛔"
+
+        asunto = f"{emoji} ALERTA Congelador {congelador} — {alerta_tipo}"
+        cuerpo = f"""
+        <html><body style="font-family:Arial,sans-serif;color:#333;">
+        <h2 style="color:#c0392b;">{emoji} Alerta detectada — Congelador {congelador}</h2>
+        <table border="1" cellpadding="8" cellspacing="0" style="border-collapse:collapse;">
+            <tr><td><b>Congelador</b></td><td>{congelador}</td></tr>
+            <tr><td><b>Tipo de alerta</b></td><td>{alerta_tipo}</td></tr>
+            <tr><td><b>Temperatura</b></td><td>{temperatura} °C</td></tr>
+            <tr><td><b>Especie</b></td><td>{especie}</td></tr>
+            <tr><td><b>Mensaje</b></td><td>{alerta_msg}</td></tr>
+        </table>
+        <p style="margin-top:16px;">Revisa el sistema ClimaLink Station para más detalles.</p>
+        </body></html>
+        """
+
+        mensaje = MIMEMultipart("alternative")
+        mensaje["Subject"] = asunto
+        mensaje["From"]    = remitente
+        mensaje["To"]      = destinatario
+        mensaje.attach(MIMEText(cuerpo, "html"))
+
+        with smtplib.SMTP_SSL("smtp.gmail.com", 465) as servidor:
+            servidor.login(remitente, password)
+            servidor.sendmail(remitente, destinatario, mensaje.as_string())
+
+        return jsonify({"ok": True}), 200
+
+    except Exception as e:
+        print(f"❌ Error enviando email: {e}")
+        return jsonify({"error": str(e)}), 500
 
 
 # ───────────────────────── MAIN ─────────────────────────

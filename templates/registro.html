@@ -76,17 +76,8 @@
     box-shadow: 0 6px 20px rgba(26,86,219,0.4);
   }
 
-  .logo-text {
-    font-size: 14px;
-    font-weight: 600;
-    color: var(--white);
-  }
-
-  .logo-sub {
-    font-size: 11px;
-    color: var(--silver);
-    font-weight: 300;
-  }
+  .logo-text { font-size: 14px; font-weight: 600; color: var(--white); }
+  .logo-sub  { font-size: 11px; color: var(--silver); font-weight: 300; }
 
   .card {
     background: var(--navy2);
@@ -98,114 +89,78 @@
   .card-header { margin-bottom: 32px; }
 
   .card-title {
-    font-size: 22px;
-    font-weight: 700;
-    color: var(--white);
-    letter-spacing: -0.3px;
-    margin-bottom: 6px;
+    font-size: 22px; font-weight: 700;
+    color: var(--white); letter-spacing: -0.3px; margin-bottom: 6px;
   }
 
-  .card-subtitle {
-    font-size: 13px;
-    color: var(--silver);
-    font-weight: 300;
+  .card-subtitle { font-size: 13px; color: var(--silver); font-weight: 300; }
+
+  .section-divider {
+    display: flex; align-items: center; gap: 12px;
+    margin: 24px 0 20px;
+  }
+  .section-divider span {
+    font-size: 11px; font-weight: 600; color: var(--silver);
+    text-transform: uppercase; letter-spacing: 0.8px; white-space: nowrap;
+  }
+  .section-divider::before, .section-divider::after {
+    content: ''; flex: 1; height: 1px; background: var(--border);
   }
 
   .alert {
-    padding: 12px 16px;
-    border-radius: 8px;
-    font-size: 13px;
-    margin-bottom: 24px;
-    display: flex;
-    align-items: flex-start;
-    gap: 10px;
-    line-height: 1.5;
+    padding: 12px 16px; border-radius: 8px; font-size: 13px;
+    margin-bottom: 24px; display: flex; align-items: flex-start;
+    gap: 10px; line-height: 1.5;
   }
-  .alert-error {
-    background: rgba(239,68,68,0.08);
-    border: 1px solid rgba(239,68,68,0.25);
-    color: #fca5a5;
-  }
-  .alert-success {
-    background: rgba(34,197,94,0.08);
-    border: 1px solid rgba(34,197,94,0.25);
-    color: #86efac;
-  }
-  .alert-icon { font-size: 15px; flex-shrink: 0; }
+  .alert-error  { background: rgba(239,68,68,0.08); border: 1px solid rgba(239,68,68,0.25); color: #fca5a5; }
+  .alert-success{ background: rgba(34,197,94,0.08);  border: 1px solid rgba(34,197,94,0.25);  color: #86efac; }
+  .alert-icon   { font-size: 15px; flex-shrink: 0; }
 
   .field { margin-bottom: 18px; }
 
   label {
-    display: block;
-    font-size: 13px;
-    font-weight: 500;
-    color: var(--silver-light);
-    margin-bottom: 8px;
+    display: block; font-size: 13px; font-weight: 500;
+    color: var(--silver-light); margin-bottom: 8px;
   }
 
   input {
-    width: 100%;
-    background: var(--navy);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 12px 16px;
-    font-family: var(--font);
-    font-size: 14px;
-    color: var(--white);
-    outline: none;
+    width: 100%; background: var(--navy);
+    border: 1px solid var(--border); border-radius: 8px;
+    padding: 12px 16px; font-family: var(--font);
+    font-size: 14px; color: var(--white); outline: none;
     transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
   }
   input:focus {
-    border-color: var(--blue-light);
-    background: var(--navy3);
+    border-color: var(--blue-light); background: var(--navy3);
     box-shadow: 0 0 0 3px var(--blue-glow);
   }
   input::placeholder { color: rgba(148,163,184,0.35); }
 
-  .field-hint {
-    font-size: 11px;
-    color: rgba(148,163,184,0.45);
-    margin-top: 5px;
-  }
+  .field-hint { font-size: 11px; color: rgba(148,163,184,0.45); margin-top: 5px; }
 
-  .grid-2 {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 16px;
+  .info-box {
+    background: rgba(26,86,219,0.08);
+    border: 1px solid rgba(26,86,219,0.2);
+    border-radius: 8px; padding: 12px 14px;
+    font-size: 12px; color: #93c5fd; line-height: 1.6;
+    margin-bottom: 18px;
   }
+  .info-box strong { color: #bfdbfe; }
+
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
 
   .btn-primary {
-    width: 100%;
-    background: var(--blue);
-    color: #fff;
-    border: none;
-    border-radius: 8px;
-    padding: 13px;
-    font-family: var(--font);
-    font-size: 14px;
-    font-weight: 600;
-    cursor: pointer;
-    margin-top: 8px;
+    width: 100%; background: var(--blue); color: #fff;
+    border: none; border-radius: 8px; padding: 13px;
+    font-family: var(--font); font-size: 14px; font-weight: 600;
+    cursor: pointer; margin-top: 8px;
     transition: background 0.2s, box-shadow 0.2s, transform 0.1s;
   }
-  .btn-primary:hover {
-    background: var(--blue-light);
-    box-shadow: 0 8px 24px rgba(26,86,219,0.35);
-  }
+  .btn-primary:hover { background: var(--blue-light); box-shadow: 0 8px 24px rgba(26,86,219,0.35); }
   .btn-primary:active { transform: scale(0.99); }
 
-  .login-link {
-    text-align: center;
-    font-size: 13px;
-    color: var(--silver);
-    margin-top: 20px;
-  }
-  .login-link a {
-    color: var(--blue-light);
-    text-decoration: none;
-    font-weight: 500;
-    transition: color 0.2s;
-  }
+  .login-link { text-align: center; font-size: 13px; color: var(--silver); margin-top: 20px; }
+  .login-link a { color: var(--blue-light); text-decoration: none; font-weight: 500; transition: color 0.2s; }
   .login-link a:hover { color: #93c5fd; }
 
   @keyframes fadeUp {
@@ -217,7 +172,7 @@
 <body>
 
 <div class="container">
-  <a href="/" class="logo" style="text-decoration:none">
+  <a href="/" class="logo">
     <div class="logo-icon">🐟</div>
     <div>
       <div class="logo-text">ClimaLink Station</div>
@@ -242,6 +197,8 @@
     {% endwith %}
 
     <form method="POST">
+
+      <!-- DATOS DE ACCESO -->
       <div class="field">
         <label>Nombre completo</label>
         <input type="text" name="nombre" placeholder="Ej: Carlos Estrada" required>
@@ -262,6 +219,26 @@
           <label>Confirmar contraseña</label>
           <input type="password" name="confirm" placeholder="Repite la contraseña" required>
         </div>
+      </div>
+
+      <!-- CONFIGURACIÓN DE ALERTAS -->
+      <div class="section-divider"><span>Configuración de alertas por correo</span></div>
+
+      <div class="info-box">
+        📧 Estas credenciales se usarán para enviarte alertas automáticas cuando un congelador entre en estado de riesgo.<br>
+        <strong>App Password:</strong> genera uno en <strong>myaccount.google.com/apppasswords</strong>
+      </div>
+
+      <div class="field">
+        <label>Correo Gmail para alertas</label>
+        <input type="email" name="email_alerta" placeholder="Ej: tucorreo@gmail.com" required>
+        <div class="field-hint">Este correo enviará y recibirá las alertas.</div>
+      </div>
+
+      <div class="field">
+        <label>App Password de Gmail</label>
+        <input type="password" name="app_password" placeholder="Ej: abcd efgh ijkl mnop" required>
+        <div class="field-hint">16 dígitos generados en tu cuenta de Google.</div>
       </div>
 
       <button type="submit" class="btn-primary">Crear cuenta</button>
