@@ -1,141 +1,176 @@
 import json
-import sqlite3
 import threading
 import time
+import os
+import psycopg2
+from psycopg2.extras import RealDictCursor
 import paho.mqtt.client as mqtt
-import blynklib
+from datetime import datetime
 
-# ---------------- CONFIG ----------------
-BROKER = "localhost"
+# ============================================================
+#  CONFIGURACIÓN — Cambia USAR_NUBE según el entorno
+#  True  → HiveMQ Cloud (cualquier red)
+#  False → Mosquitto local (misma PC)
+# ============================================================
+USAR_NUBE = True
+
+if USAR_NUBE:
+    BROKER    = "0b158edb9649430e9bf6c29ac988da7f.s1.eu.hivemq.cloud"
+    PORT      = 8883
+    MQTT_USER = "pesquera"
+    MQTT_PASS = "Pesquera2026!"
+else:
+    BROKER    = "localhost"
+    PORT      = 1883
+    MQTT_USER = None
+    MQTT_PASS = None
+
 TOPIC = "pesquera/congelador"
 
-BLYNK_AUTH = "TU_TOKEN_AQUI"
-
-# ---------------- BLYNK ----------------
-blynk = blynklib.Blynk(BLYNK_AUTH)
-
-def run_blynk():
-    while True:
-        blynk.run()
-        time.sleep(0.05)
-
-threading.Thread(target=run_blynk, daemon=True).start()
-
-# ---------------- BASE DE DATOS ----------------
-conn = sqlite3.connect("datos.db", check_same_thread=False)
-cursor = conn.cursor()
-
-cursor.execute("""
-CREATE TABLE IF NOT EXISTS registros (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    congelador TEXT,
-    temperatura REAL,
-    humedad REAL,
-    especie TEXT,
-    tiempo INTEGER,
-    estado TEXT,
-    fecha TEXT
+# ─── BASE DE DATOS ───────────────────────────────────────
+DATABASE_URL = os.environ.get(
+    "DATABASE_URL",
+    "postgresql://climalink:rTzY0aKIvu9f1MHUQVT0ZXo3t0xoXBhj@dpg-d7rqlv7avr4c73a43k70-a.oregon-postgres.render.com/climalink"
 )
-""")
 
-conn.commit()
+db_lock = threading.Lock()
 
-# ---------------- REGLAS ----------------
+def get_db():
+    return psycopg2.connect(DATABASE_URL, cursor_factory=RealDictCursor)
+
+def init_db():
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS registros (
+            id SERIAL PRIMARY KEY,
+            congelador TEXT,
+            temperatura REAL,
+            humedad REAL,
+            especie TEXT,
+            tiempo INTEGER,
+            estado TEXT,
+            fecha TEXT
+        )
+    """)
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS usuarios (
+            id SERIAL PRIMARY KEY,
+            nombre TEXT NOT NULL,
+            username TEXT UNIQUE NOT NULL,
+            password TEXT NOT NULL,
+            reset_token TEXT,
+            activo INTEGER DEFAULT 1
+        )
+    """)
+    conn.commit()
+    cursor.close()
+    conn.close()
+    print("✅ Base de datos inicializada")
+
+# ─── REGLAS ──────────────────────────────────────────────
 condiciones = {
     "tilapia": {"temp": -18, "max_horas": 48},
-    "bagre": {"temp": -18, "max_horas": 60},
-    "trucha": {"temp": -20, "max_horas": 36}
+    "bagre":   {"temp": -18, "max_horas": 60},
+    "trucha":  {"temp": -20, "max_horas": 36}
 }
 
 def evaluar_estado(temp, tiempo, especie):
     ref = condiciones.get(especie, {"temp": -18, "max_horas": 999})
-
     if temp > ref["temp"] or tiempo > ref["max_horas"]:
         return "RIESGO"
     return "OPTIMO"
 
-# ---------------- CONTROL INTELIGENTE ----------------
-last_temp = {}
-last_state = {}
+# ─── CONTROL INTELIGENTE DE GUARDADO ─────────────────────
+last_temp      = {}
+last_state     = {}
 last_save_time = {}
 
 def should_save(congelador, temp, estado):
-    """
-    Reglas inteligentes:
-    - guarda si es primera vez
-    - guarda si cambia estado
-    - guarda si cambia temperatura significativamente
-    """
     if congelador not in last_temp:
         return True
-
     if last_state.get(congelador) != estado:
         return True
-
     if abs(last_temp[congelador] - temp) >= 0.3:
         return True
-
     return False
 
-# ---------------- MQTT ----------------
-def on_message(client, userdata, msg):
-    global last_temp, last_state, last_save_time
+# ─── MQTT ────────────────────────────────────────────────
+def on_connect(client, userdata, flags, rc, properties=None):
+    if rc == 0:
+        modo = "HiveMQ Cloud ☁" if USAR_NUBE else "Mosquitto Local 🖥"
+        print(f"✅ Conectado a {modo}")
+        client.subscribe(TOPIC)
+    else:
+        print(f"❌ Error de conexión: {rc}")
 
+def on_message(client, userdata, msg):
     try:
         data = json.loads(msg.payload.decode())
 
-        congelador = data["congelador"]
-        temp = float(data["temperatura"])
-        hum = float(data["humedad"])
-        especie = data["especie"]
-        tiempo = int(data["tiempo_almacenamiento"])
+        congelador = data.get("congelador")
+        temp       = float(data.get("temperatura"))
+        hum        = float(data.get("humedad"))
+        especie    = data.get("especie")
+        tiempo     = int(data.get("tiempo_almacenamiento"))
 
         estado = evaluar_estado(temp, tiempo, especie)
-        now = time.time()
+        now    = time.time()
 
-        # 🔥 límite de frecuencia por congelador (5 segundos)
         if congelador in last_save_time:
             if now - last_save_time[congelador] < 5:
                 return
 
-        # 🔥 lógica inteligente de guardado
         if not should_save(congelador, temp, estado):
             return
 
-        last_temp[congelador] = temp
-        last_state[congelador] = estado
+        last_temp[congelador]      = temp
+        last_state[congelador]     = estado
         last_save_time[congelador] = now
 
+        fecha = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         print(f"📥 {congelador} | {especie} | {temp}°C | {estado}")
 
-        # ALERTA
         if estado == "RIESGO":
-            print("⚠ ALERTA: Producto en riesgo")
-            blynk.virtual_write(1, "⚠ RIESGO")
+            print(f"⚠ ALERTA: {congelador} en riesgo")
 
-        # GUARDAR BD
-        cursor.execute("""
-            INSERT INTO registros 
-            (congelador, temperatura, humedad, especie, tiempo, estado, fecha)
-            VALUES (?, ?, ?, ?, ?, ?, datetime('now'))
-        """, (congelador, temp, hum, especie, tiempo, estado))
-
-        conn.commit()
-
-        # BLYNK
-        blynk.virtual_write(0, temp)
-        blynk.virtual_write(1, hum)
-        blynk.virtual_write(2, especie)
-        blynk.virtual_write(3, estado)
+        with db_lock:
+            conn = get_db()
+            cursor = conn.cursor()
+            cursor.execute("""
+                INSERT INTO registros
+                (congelador, temperatura, humedad, especie, tiempo, estado, fecha)
+                VALUES (%s, %s, %s, %s, %s, %s, %s)
+            """, (congelador, temp, hum, especie, tiempo, estado, fecha))
+            conn.commit()
+            cursor.close()
+            conn.close()
 
     except Exception as e:
-        print("❌ Error MQTT:", e)
+        print(f"❌ Error procesando mensaje: {e}")
 
-# ---------------- MQTT SETUP ----------------
-client = mqtt.Client()
-client.connect(BROKER, 1883, 60)
-client.subscribe(TOPIC)
-client.on_message = on_message
+def on_disconnect(client, userdata, rc, properties=None):
+    print("🔴 Desconectado. Reconectando...")
+    try:
+        client.reconnect()
+    except Exception as e:
+        print(f"❌ Error al reconectar: {e}")
 
+# ─── CONEXIÓN ────────────────────────────────────────────
+init_db()
+
+client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)
+
+if USAR_NUBE:
+    client.username_pw_set(MQTT_USER, MQTT_PASS)
+    client.tls_set()
+
+client.on_connect    = on_connect
+client.on_message    = on_message
+client.on_disconnect = on_disconnect
+
+modo = "HiveMQ Cloud ☁" if USAR_NUBE else "Mosquitto Local 🖥"
+print(f"🔌 Conectando a {modo}...")
+client.connect(BROKER, PORT, 60)
 print("🟢 Backend activo...")
 client.loop_forever()

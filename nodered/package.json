@@ -1,0 +1,8 @@
+{
+    "name": "climalink-nodered",
+    "description": "Node-RED para ClimaLink Station - Pesquera Estrada",
+    "version": "1.0.0",
+    "dependencies": {
+        "node-red-dashboard": "3.6.6"
+    }
+}
