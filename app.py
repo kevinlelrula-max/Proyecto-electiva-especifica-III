@@ -2,9 +2,7 @@ from flask import Flask, render_template, request, redirect, url_for, session, f
 import hashlib
 import secrets
 import os
-import smtplib
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
+import resend
 import psycopg2
 from psycopg2.extras import RealDictCursor
 
@@ -273,9 +271,11 @@ def alerta_email():
         if not user or not user["email_alerta"] or not user["app_password"]:
             return jsonify({"error": "No hay credenciales de email configuradas"}), 400
 
-        remitente    = user["email_alerta"]
-        password     = user["app_password"]
         destinatario = user["email_alerta"]
+        resend_api_key = os.environ.get("RESEND_API_KEY", "")
+
+        if not resend_api_key:
+            return jsonify({"error": "RESEND_API_KEY no configurada"}), 400
 
         congelador  = data.get("congelador", "?")
         alerta_tipo = data.get("alerta_tipo", "")
@@ -300,15 +300,13 @@ def alerta_email():
         </body></html>
         """
 
-        mensaje = MIMEMultipart("alternative")
-        mensaje["Subject"] = asunto
-        mensaje["From"]    = remitente
-        mensaje["To"]      = destinatario
-        mensaje.attach(MIMEText(cuerpo, "html"))
-
-        with smtplib.SMTP_SSL("smtp.gmail.com", 465) as servidor:
-            servidor.login(remitente, password)
-            servidor.sendmail(remitente, destinatario, mensaje.as_string())
+        resend.api_key = resend_api_key
+        resend.Emails.send({
+            "from": "ClimaLink <onboarding@resend.dev>",
+            "to": [destinatario],
+            "subject": asunto,
+            "html": cuerpo
+        })
 
         return jsonify({"ok": True}), 200
 
