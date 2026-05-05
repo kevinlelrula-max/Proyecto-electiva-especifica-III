@@ -7,7 +7,7 @@ cursor = conn.cursor()
 
 cursor.execute(
     "UPDATE usuarios SET email_alerta = %s WHERE username = %s",
-    ('kevinlelrula@gmail.com', 'admin')
+    ('pruebanotificaciones31@gmail.com', 'admin')
 )
 conn.commit()
 
