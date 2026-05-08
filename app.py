@@ -234,6 +234,50 @@ def historial():
     cursor.execute("SELECT COUNT(*) FROM registros WHERE estado='OPTIMO'")
     optimos = cursor.fetchone()["count"]
 
+    # ── Análisis estadístico ──────────────────────────────────────────────────
+    cursor.execute("""
+        SELECT congelador,
+               ROUND(AVG(temperatura)::numeric, 2) AS avg_temp,
+               MIN(temperatura)                    AS min_temp,
+               MAX(temperatura)                    AS max_temp,
+               ROUND(AVG(humedad)::numeric, 1)     AS avg_hum,
+               COUNT(*)                            AS total,
+               SUM(CASE WHEN estado='OPTIMO' THEN 1 ELSE 0 END) AS opt,
+               SUM(CASE WHEN estado='RIESGO' THEN 1 ELSE 0 END) AS rie
+        FROM registros
+        GROUP BY congelador
+        ORDER BY congelador
+    """)
+    stats_cong = [dict(r) for r in cursor.fetchall()]
+
+    cursor.execute("""
+        SELECT especie, COUNT(*) AS cnt
+        FROM registros
+        GROUP BY especie
+        ORDER BY cnt DESC
+        LIMIT 6
+    """)
+    dist_especie = [dict(r) for r in cursor.fetchall()]
+
+    cursor.execute("""
+        SELECT congelador, ROUND(temperatura::numeric, 2) AS temperatura, id
+        FROM (
+            SELECT congelador, temperatura, id,
+                   ROW_NUMBER() OVER (PARTITION BY congelador ORDER BY id DESC) AS rn
+            FROM registros
+        ) sub
+        WHERE rn <= 30
+        ORDER BY congelador, id ASC
+    """)
+    tendencia_raw = cursor.fetchall()
+    tendencia = {}
+    for r in tendencia_raw:
+        c = r["congelador"]
+        if c not in tendencia:
+            tendencia[c] = {"labels": [], "temps": []}
+        tendencia[c]["labels"].append(str(r["id"]))
+        tendencia[c]["temps"].append(float(r["temperatura"]) if r["temperatura"] is not None else None)
+
     cursor.close()
     conn.close()
 
@@ -245,7 +289,10 @@ def historial():
         optimos=optimos,
         filtro_congelador=congelador,
         filtro_especie=especie,
-        filtro_estado=estado
+        filtro_estado=estado,
+        stats_cong=stats_cong,
+        dist_especie=dist_especie,
+        tendencia=tendencia,
     )
 
 # ─── ALERTA EMAIL ────────────────────────────────────────
