@@ -32,6 +32,28 @@
     --r-lg: 12px;
   }
 
+  [data-theme="dark"] {
+    --bg: #0d1117;
+    --white: #161b22;
+    --border: #30363d;
+    --border-md: #444c56;
+    --text: #e6edf3;
+    --muted: #8b949e;
+    --hint: #6e7681;
+    --blue-bg: #0d2137;
+    --blue: #58a6ff;
+    --blue-dark: #79c0ff;
+    --blue-mid: #388bfd;
+    --green-bg: #122010;
+    --green: #56d364;
+    --green-dark: #7ee787;
+    --red-bg: #2d1010;
+    --red: #f85149;
+    --red-dark: #ff7b72;
+    --amber: #e3b341;
+    --navy: #388bfd;
+  }
+
   * { margin: 0; padding: 0; box-sizing: border-box; }
 
   body {
@@ -82,6 +104,16 @@
     transition: background 0.15s, border-color 0.15s;
   }
   .btn-logout:hover { background: var(--bg); border-color: var(--border-md); }
+
+  .btn-theme {
+    width: 34px; height: 34px;
+    border: 1px solid var(--border); background: transparent;
+    border-radius: var(--r-md); cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px; transition: background 0.15s, border-color 0.15s;
+    flex-shrink: 0;
+  }
+  .btn-theme:hover { background: var(--bg); border-color: var(--border-md); }
 
   main {
     max-width: 1280px;
@@ -147,7 +179,7 @@
     padding: 14px 20px;
     border-bottom: 1px solid var(--border);
     display: flex; align-items: center; justify-content: space-between;
-    background: #fafbfc;
+    background: var(--white);
   }
 
   .card-title { font-size: 13px; font-weight: 500; }
@@ -217,13 +249,13 @@
     padding: 10px 20px; text-align: left;
     font-size: 11px; font-weight: 500; color: var(--muted);
     letter-spacing: 0.05em; text-transform: uppercase;
-    background: #fafbfc;
+    background: var(--white);
     border-bottom: 1px solid var(--border);
     white-space: nowrap;
   }
 
-  tbody tr { border-bottom: 1px solid #f0f2f5; transition: background 0.1s; }
-  tbody tr:hover { background: #f8f9fb; }
+  tbody tr { border-bottom: 1px solid var(--border); transition: background 0.1s; }
+  tbody tr:hover { background: var(--bg); }
   tbody tr:last-child { border-bottom: none; }
 
   tbody td { padding: 13px 20px; font-size: 13px; vertical-align: middle; }
@@ -294,6 +326,7 @@
   </div>
   <div class="nav-right">
     <span class="nav-user">Usuario: <strong>{{ session.usuario }}</strong></span>
+    <button class="btn-theme" id="themeToggle" title="Cambiar tema" aria-label="Cambiar tema">🌙</button>
     <a href="/logout" class="btn-logout">Cerrar sesión</a>
   </div>
 </nav>
@@ -429,5 +462,25 @@
   </div>
 
 </main>
+
+<script>
+  const btn = document.getElementById('themeToggle');
+  const root = document.documentElement;
+
+  function applyTheme(dark) {
+    root.setAttribute('data-theme', dark ? 'dark' : 'light');
+    btn.textContent = dark ? '☀️' : '🌙';
+  }
+
+  const saved = localStorage.getItem('theme');
+  const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+  applyTheme(saved === 'dark' || (!saved && prefersDark));
+
+  btn.addEventListener('click', () => {
+    const isDark = root.getAttribute('data-theme') === 'dark';
+    localStorage.setItem('theme', isDark ? 'light' : 'dark');
+    applyTheme(!isDark);
+  });
+</script>
 </body>
 </html>
