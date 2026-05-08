@@ -340,9 +340,31 @@
     "y": 1200,
     "wires": [
       [
-        "88329af4972b00c1"
+        "88329af4972b00c1",
+        "setpoint_text_A"
       ]
     ]
+  },
+  {
+    "id": "setpoint_text_A",
+    "type": "ui_text",
+    "z": "c4e5af6920245a64",
+    "group": "cf52349c92b4595b",
+    "order": 11,
+    "width": 6,
+    "height": 1,
+    "name": "Setpoint A",
+    "label": "Setpoint:",
+    "format": "{{msg.payload}} °C",
+    "layout": "row-spread",
+    "className": "",
+    "style": false,
+    "font": "",
+    "fontSize": 16,
+    "color": "#000000",
+    "x": 880,
+    "y": 1200,
+    "wires": []
   },
   {
     "id": "fca6a3f3dd0fad49",
@@ -367,9 +389,31 @@
     "y": 1240,
     "wires": [
       [
-        "88329af4972b00c1"
+        "88329af4972b00c1",
+        "setpoint_text_B"
       ]
     ]
+  },
+  {
+    "id": "setpoint_text_B",
+    "type": "ui_text",
+    "z": "c4e5af6920245a64",
+    "group": "992752971a20e668",
+    "order": 11,
+    "width": 6,
+    "height": 1,
+    "name": "Setpoint B",
+    "label": "Setpoint:",
+    "format": "{{msg.payload}} °C",
+    "layout": "row-spread",
+    "className": "",
+    "style": false,
+    "font": "",
+    "fontSize": 16,
+    "color": "#000000",
+    "x": 880,
+    "y": 1240,
+    "wires": []
   },
   {
     "id": "f02c0c38ec3c0578",
@@ -394,16 +438,38 @@
     "y": 1280,
     "wires": [
       [
-        "88329af4972b00c1"
+        "88329af4972b00c1",
+        "setpoint_text_C"
       ]
     ]
+  },
+  {
+    "id": "setpoint_text_C",
+    "type": "ui_text",
+    "z": "c4e5af6920245a64",
+    "group": "6129b16b94677491",
+    "order": 11,
+    "width": 6,
+    "height": 1,
+    "name": "Setpoint C",
+    "label": "Setpoint:",
+    "format": "{{msg.payload}} °C",
+    "layout": "row-spread",
+    "className": "",
+    "style": false,
+    "font": "",
+    "fontSize": 16,
+    "color": "#000000",
+    "x": 880,
+    "y": 1280,
+    "wires": []
   },
   {
     "id": "88329af4972b00c1",
     "type": "function",
     "z": "c4e5af6920245a64",
     "name": "Regulación de temperatura",
-    "func": "var setpoint   = msg.payload;\nvar congelador = msg.topic;   // 'A', 'B' o 'C'\nvar temp_actual = global.get('temp_' + congelador) || 0;\n\nglobal.set('setpoint_' + congelador, setpoint);\n\nvar accion;\nif (temp_actual > setpoint + 1) {\n    accion = 'ENFRIAR';\n} else if (temp_actual < setpoint - 1) {\n    accion = 'CALENTAR';\n} else {\n    accion = 'MANTENER';\n}\n\n// Notificar el cambio de setpoint\nvar notifMsg = {\n    alerta_tipo: 'SETPOINT',\n    alerta_msg: '🎛 Congelador ' + congelador + ': setpoint ajustado a ' + setpoint + '°C — acción: ' + accion,\n    congelador: congelador\n};\nnode.send([msg, notifMsg]);\n\n// Publicar comando vía MQTT hacia el simulador.py\nmsg.payload = { congelador: congelador, setpoint: setpoint, accion: accion };\nmsg.topic   = 'pesquera/congelador/' + congelador + '/control';\nreturn null;",
+    "func": "var setpoint   = msg.payload;\nvar congelador = msg.topic;   // 'A', 'B' o 'C'\nvar temp_actual = global.get('temp_' + congelador) || 0;\n\nglobal.set('setpoint_' + congelador, setpoint);\n\nvar accion;\nif (temp_actual > setpoint + 1) {\n    accion = 'ENFRIAR';\n} else if (temp_actual < setpoint - 1) {\n    accion = 'CALENTAR';\n} else {\n    accion = 'MANTENER';\n}\n\n// Notificar el cambio de setpoint\nvar notifMsg = {\n    alerta_tipo: 'SETPOINT',\n    alerta_msg: '🎛 Congelador ' + congelador + ': setpoint ajustado a ' + setpoint + '°C — acción: ' + accion,\n    congelador: congelador\n};\n\n// Publicar comando vía MQTT hacia el simulador.py\nmsg.payload = { congelador: congelador, setpoint: setpoint, accion: accion };\nmsg.topic   = 'pesquera/congelador/' + congelador + '/control';\nnode.send([msg, notifMsg]);\nreturn null;",
     "outputs": 2,
     "timeout": 0,
     "noerr": 0,

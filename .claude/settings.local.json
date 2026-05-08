@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pip install *)",
+      "Bash(python3 -m pip install python-pptx -q)",
+      "Bash(python3 -c \"from pptx import Presentation; print\\('OK'\\)\")",
+      "Bash(python3 -c ' *)"
+    ]
+  }
+}
