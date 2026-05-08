@@ -20,7 +20,7 @@ module.exports = {
     disableEditor: false,
     httpAdminRoot: '/',
     httpNodeRoot: '/api',
-    ui: { path: "ui" },
+    ui: { path: "ui", defaultTheme: "dark" },
 
     contextStorage: {
         default: {

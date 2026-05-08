@@ -518,14 +518,14 @@
     "height": 0,
     "gtype": "gage",
     "title": "Temperatura",
-    "label": "units",
-    "format": "{{msg.temp}}",
-    "min": 0,
-    "max": "-50",
+    "label": "°C",
+    "format": "{{value}}°C",
+    "min": -50,
+    "max": 0,
     "colors": [
-      "#00b500",
-      "#e6e600",
-      "#ca3838"
+      "#1a73e8",
+      "#f9a825",
+      "#e53935"
     ],
     "seg1": "",
     "seg2": "",
@@ -564,7 +564,7 @@
     "order": 2,
     "width": 0,
     "height": 0,
-    "label": "Grafico",
+    "label": "Temperatura (°C)",
     "chartType": "line",
     "legend": "false",
     "xformat": "HH:mm:ss",
@@ -735,14 +735,14 @@
     "height": 0,
     "gtype": "gage",
     "title": "Temperatura",
-    "label": "units",
-    "format": "{{msg.temp}}",
-    "min": 0,
-    "max": "-50",
+    "label": "°C",
+    "format": "{{value}}°C",
+    "min": -50,
+    "max": 0,
     "colors": [
-      "#00b500",
-      "#e6e600",
-      "#ca3838"
+      "#1a73e8",
+      "#f9a825",
+      "#e53935"
     ],
     "seg1": "",
     "seg2": "",
@@ -781,7 +781,7 @@
     "order": 2,
     "width": 0,
     "height": 0,
-    "label": "Grafico",
+    "label": "Temperatura (°C)",
     "chartType": "line",
     "legend": "false",
     "xformat": "HH:mm:ss",
@@ -952,14 +952,14 @@
     "height": 0,
     "gtype": "gage",
     "title": "Temperatura",
-    "label": "units",
-    "format": "{{msg.temp}}",
-    "min": 0,
-    "max": "-50",
+    "label": "°C",
+    "format": "{{value}}°C",
+    "min": -50,
+    "max": 0,
     "colors": [
-      "#00b500",
-      "#e6e600",
-      "#ca3838"
+      "#1a73e8",
+      "#f9a825",
+      "#e53935"
     ],
     "seg1": "",
     "seg2": "",
@@ -998,7 +998,7 @@
     "order": 2,
     "width": 0,
     "height": 0,
-    "label": "Grafico",
+    "label": "Temperatura (°C)",
     "chartType": "line",
     "legend": "false",
     "xformat": "HH:mm:ss",
@@ -1439,8 +1439,12 @@
     "x": 1800,
     "y": 980,
     "wires": [
-      ["debug_flask_ok"],
-      ["debug_flask_err"]
+      [
+        "debug_flask_ok"
+      ],
+      [
+        "debug_flask_err"
+      ]
     ]
   },
   {
