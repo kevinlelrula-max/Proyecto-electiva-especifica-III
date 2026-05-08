@@ -44,8 +44,6 @@ def init_db():
             nombre TEXT NOT NULL,
             username TEXT UNIQUE NOT NULL,
             password TEXT NOT NULL,
-            email_alerta TEXT,
-            app_password TEXT,
             reset_token TEXT,
             activo INTEGER DEFAULT 1
         )
@@ -97,12 +95,10 @@ def login():
 @app.route("/registro", methods=["GET", "POST"])
 def registro():
     if request.method == "POST":
-        nombre       = request.form.get("nombre", "").strip()
-        username     = request.form.get("username", "").strip()
-        password     = request.form.get("password", "").strip()
-        confirm      = request.form.get("confirm", "").strip()
-        email_alerta = request.form.get("email_alerta", "").strip()
-        app_password = request.form.get("app_password", "").strip()
+        nombre   = request.form.get("nombre", "").strip()
+        username = request.form.get("username", "").strip()
+        password = request.form.get("password", "").strip()
+        confirm  = request.form.get("confirm", "").strip()
 
         if not nombre or not username or not password:
             flash("error|Todos los campos son obligatorios.")
@@ -118,8 +114,8 @@ def registro():
             conn = get_db()
             cursor = conn.cursor()
             cursor.execute(
-                "INSERT INTO usuarios (nombre, username, password, email_alerta, app_password) VALUES (%s, %s, %s, %s, %s)",
-                (nombre, username, hash_password(password), email_alerta or None, app_password or None)
+                "INSERT INTO usuarios (nombre, username, password) VALUES (%s, %s, %s)",
+                (nombre, username, hash_password(password))
             )
             conn.commit()
             cursor.close()
@@ -259,21 +255,10 @@ def alerta_email():
     try:
         data = request.get_json()
 
-        conn = get_db()
-        cursor = conn.cursor()
-        cursor.execute(
-            "SELECT email_alerta, app_password FROM usuarios WHERE activo = 1 AND email_alerta IS NOT NULL ORDER BY id DESC LIMIT 1"
-        )
-        user = cursor.fetchone()
-        cursor.close()
-        conn.close()
+        # Email de alertas fijo — configurado como variable de entorno en Render
+        destinatario = os.environ.get("EMAIL_ALERTAS", "pruebanotificaciones31@gmail.com")
 
-        if not user or not user["email_alerta"] or not user["app_password"]:
-            return jsonify({"error": "No hay credenciales de email configuradas"}), 400
-
-        destinatario = user["email_alerta"]
         resend_api_key = os.environ.get("RESEND_API_KEY", "")
-
         if not resend_api_key:
             return jsonify({"error": "RESEND_API_KEY no configurada"}), 400
 
