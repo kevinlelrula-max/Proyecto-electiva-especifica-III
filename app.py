@@ -270,7 +270,31 @@ def analisis():
         GROUP BY congelador
         ORDER BY congelador
     """)
-    stats_cong = [dict(r) for r in cursor.fetchall()]
+    # Convertir Decimal → float/int para evitar errores de serialización JSON
+    stats_cong = []
+    for r in cursor.fetchall():
+        d = dict(r)
+        d["avg_temp"] = round(float(d["avg_temp"]), 2) if d["avg_temp"] is not None else 0.0
+        d["min_temp"] = round(float(d["min_temp"]), 2) if d["min_temp"] is not None else 0.0
+        d["max_temp"] = round(float(d["max_temp"]), 2) if d["max_temp"] is not None else 0.0
+        d["avg_hum"]  = round(float(d["avg_hum"]),  1) if d["avg_hum"]  is not None else 0.0
+        d["total"]    = int(d["total"]) if d["total"] is not None else 0
+        d["opt"]      = int(d["opt"])   if d["opt"]   is not None else 0
+        d["rie"]      = int(d["rie"])   if d["rie"]   is not None else 0
+        d["pct_opt"]  = round(d["opt"] / d["total"] * 100, 1) if d["total"] > 0 else 0.0
+        stats_cong.append(d)
+
+    # KPIs globales (calculados en Python, no en Jinja2)
+    if stats_cong:
+        global_avg_temp = round(sum(s["avg_temp"] for s in stats_cong) / len(stats_cong), 1)
+        global_min_temp = round(min(s["min_temp"] for s in stats_cong), 2)
+        global_max_temp = round(max(s["max_temp"] for s in stats_cong), 2)
+        tot_global      = sum(s["total"] for s in stats_cong)
+        opt_global      = sum(s["opt"]   for s in stats_cong)
+        global_pct_opt  = round(opt_global / tot_global * 100, 1) if tot_global > 0 else 0.0
+    else:
+        global_avg_temp = global_min_temp = global_max_temp = global_pct_opt = 0.0
+        tot_global = opt_global = 0
 
     cursor.execute("""
         SELECT especie, COUNT(*) AS cnt
@@ -279,7 +303,7 @@ def analisis():
         ORDER BY cnt DESC
         LIMIT 6
     """)
-    dist_especie = [dict(r) for r in cursor.fetchall()]
+    dist_especie = [{"especie": r["especie"], "cnt": int(r["cnt"])} for r in cursor.fetchall()]
 
     cursor.execute("""
         SELECT congelador, ROUND(temperatura::numeric, 2) AS temperatura, id
@@ -318,6 +342,12 @@ def analisis():
         total=total,
         riesgos=riesgos,
         optimos=optimos,
+        global_avg_temp=global_avg_temp,
+        global_min_temp=global_min_temp,
+        global_max_temp=global_max_temp,
+        global_pct_opt=global_pct_opt,
+        tot_global=tot_global,
+        opt_global=opt_global,
     )
 
 # ─── ALERTA EMAIL ────────────────────────────────────────

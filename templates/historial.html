@@ -5,7 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>ClimaLink Station — Historial</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <style>
   :root {
     --bg: #f5f6f8;
@@ -473,24 +472,28 @@
 
 </main>
 
-<script>
-  const btn = document.getElementById('themeToggle');
-  const root = document.documentElement;
+<script type="text/javascript">
+(function() {
+  var btn  = document.getElementById('themeToggle');
+  var root = document.documentElement;
 
   function applyTheme(dark) {
     root.setAttribute('data-theme', dark ? 'dark' : 'light');
-    btn.textContent = dark ? '☀️' : '🌙';
+    if (btn) btn.textContent = dark ? '☀️' : '🌙';
   }
 
-  const saved = localStorage.getItem('theme');
-  const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+  var saved      = localStorage.getItem('theme');
+  var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
   applyTheme(saved === 'dark' || (!saved && prefersDark));
 
-  btn.addEventListener('click', () => {
-    const isDark = root.getAttribute('data-theme') === 'dark';
-    localStorage.setItem('theme', isDark ? 'light' : 'dark');
-    applyTheme(!isDark);
-  });
+  if (btn) {
+    btn.addEventListener('click', function() {
+      var isDark = root.getAttribute('data-theme') === 'dark';
+      localStorage.setItem('theme', isDark ? 'light' : 'dark');
+      applyTheme(!isDark);
+    });
+  }
+})();
 </script>
 </body>
 </html>

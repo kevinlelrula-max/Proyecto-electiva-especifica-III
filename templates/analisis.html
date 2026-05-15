@@ -132,48 +132,33 @@
 
   {% if stats_cong %}
 
-  <!-- KPIs globales -->
-  {% set tot_global = stats_cong | map(attribute='total') | map('int') | sum %}
-  {% set opt_global = stats_cong | map(attribute='opt')   | map('int') | sum %}
+  <!-- KPIs globales — valores pre-calculados en Python -->
   <div class="kpi-grid">
     <div class="kpi-card">
       <div class="kpi-label">Temp. promedio</div>
-      <div class="kpi-val">
-        {{ (stats_cong | map(attribute='avg_temp') | map('float') | sum / stats_cong | length) | round(1) }}
-        <span class="kpi-unit">°C</span>
-      </div>
+      <div class="kpi-val">{{ global_avg_temp }}<span class="kpi-unit"> °C</span></div>
       <div class="kpi-sub">Promedio de todos los congeladores</div>
     </div>
     <div class="kpi-card">
       <div class="kpi-label">Temp. mínima</div>
-      <div class="kpi-val">
-        {{ stats_cong | map(attribute='min_temp') | map('float') | min | round(2) }}
-        <span class="kpi-unit">°C</span>
-      </div>
+      <div class="kpi-val">{{ global_min_temp }}<span class="kpi-unit"> °C</span></div>
       <div class="kpi-sub">Valor más bajo registrado</div>
     </div>
     <div class="kpi-card">
       <div class="kpi-label">Temp. máxima</div>
-      <div class="kpi-val">
-        {{ stats_cong | map(attribute='max_temp') | map('float') | max | round(2) }}
-        <span class="kpi-unit">°C</span>
-      </div>
+      <div class="kpi-val">{{ global_max_temp }}<span class="kpi-unit"> °C</span></div>
       <div class="kpi-sub">Valor más alto registrado</div>
     </div>
     <div class="kpi-card">
       <div class="kpi-label">% Estado óptimo</div>
-      <div class="kpi-val">
-        {{ ((opt_global / tot_global * 100) if tot_global > 0 else 0) | round(1) }}
-        <span class="kpi-unit">%</span>
-      </div>
+      <div class="kpi-val">{{ global_pct_opt }}<span class="kpi-unit">%</span></div>
       <div class="kpi-sub">{{ opt_global }} de {{ tot_global }} registros</div>
     </div>
   </div>
 
-  <!-- Tarjetas por congelador -->
+  <!-- Tarjetas por congelador — pct_opt ya viene calculado desde Python -->
   <div class="cong-grid">
     {% for s in stats_cong %}
-    {% set pct = ((s.opt | int / s.total | int * 100) if s.total | int > 0 else 0) | round(0) | int %}
     <div class="cong-card">
       <div class="cong-name">❄️ Congelador {{ s.congelador }}</div>
       <div class="cong-temp">{{ s.avg_temp }}<span class="cong-temp-unit"> °C prom.</span></div>
@@ -184,8 +169,8 @@
         <div class="cong-row"><span class="cong-lbl">Total registros</span><span class="cong-val">{{ s.total }}</span></div>
         <div class="cong-row"><span class="cong-lbl">En riesgo</span><span class="cong-val">{{ s.rie }}</span></div>
       </div>
-      <div class="mini-bar"><div class="mini-fill" style="width:{{ pct }}%"></div></div>
-      <div class="mini-label">{{ pct }}% en estado óptimo</div>
+      <div class="mini-bar"><div class="mini-fill" style="width:{{ s.pct_opt | int }}%"></div></div>
+      <div class="mini-label">{{ s.pct_opt | int }}% en estado óptimo</div>
     </div>
     {% endfor %}
   </div>
