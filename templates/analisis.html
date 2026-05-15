@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ClimaLink Station — Análisis estadístico</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+  :root {
+    --bg: #f5f6f8; --white: #ffffff; --border: #e2e6ea; --border-md: #cdd3db;
+    --text: #111827; --muted: #6b7280; --hint: #9ca3af;
+    --blue: #185FA5; --blue-dark: #0C447C; --blue-mid: #378ADD;
+    --green: #3B6D11; --green-dark: #27500A; --red: #A32D2D;
+    --amber: #854F0B; --navy: #0f4c75;
+    --font: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    --r-sm: 6px; --r-md: 8px; --r-lg: 12px;
+  }
+  [data-theme="dark"] {
+    --bg: #0d1117; --white: #161b22; --border: #30363d; --border-md: #444c56;
+    --text: #e6edf3; --muted: #8b949e; --hint: #6e7681;
+    --blue: #58a6ff; --blue-dark: #79c0ff; --blue-mid: #388bfd;
+    --green: #56d364; --green-dark: #7ee787; --red: #f85149;
+    --amber: #e3b341; --navy: #388bfd;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body { background: var(--bg); font-family: var(--font); min-height: 100vh; color: var(--text); font-size: 14px; line-height: 1.5; }
+
+  nav {
+    background: var(--white); border-bottom: 1px solid var(--border);
+    padding: 0 28px; height: 58px; display: flex; align-items: center;
+    justify-content: space-between; position: sticky; top: 0; z-index: 100;
+  }
+  .brand { display: flex; align-items: center; gap: 10px; }
+  .brand-icon { width: 32px; height: 32px; background: var(--navy); border-radius: var(--r-md); display: flex; align-items: center; justify-content: center; font-size: 16px; }
+  .brand-name { font-size: 15px; font-weight: 600; color: var(--text); }
+  .brand-sep  { color: var(--border-md); margin: 0 6px; }
+  .brand-sub  { font-size: 13px; color: var(--muted); }
+  .nav-right  { display: flex; align-items: center; gap: 12px; }
+  .nav-user   { font-size: 13px; color: var(--muted); }
+  .nav-user strong { color: var(--text); font-weight: 500; }
+  .btn-nav {
+    font-size: 13px; color: var(--muted); border: 1px solid var(--border);
+    background: transparent; padding: 6px 14px; border-radius: var(--r-md);
+    cursor: pointer; text-decoration: none; font-family: var(--font);
+    transition: background 0.15s;
+  }
+  .btn-nav:hover { background: var(--bg); border-color: var(--border-md); }
+  .btn-theme {
+    width: 34px; height: 34px; border: 1px solid var(--border); background: transparent;
+    border-radius: var(--r-md); cursor: pointer; display: flex; align-items: center;
+    justify-content: center; font-size: 16px; transition: background 0.15s;
+  }
+  .btn-theme:hover { background: var(--bg); }
+
+  main { max-width: 1280px; margin: 0 auto; padding: 28px 24px; }
+
+  .page-header { margin-bottom: 24px; }
+  .breadcrumb  { font-size: 12px; color: var(--muted); margin-bottom: 6px; display: flex; align-items: center; }
+  .breadcrumb span { color: var(--hint); margin: 0 6px; }
+  .breadcrumb a { color: var(--muted); text-decoration: none; }
+  .breadcrumb a:hover { color: var(--blue); }
+  .page-title  { font-size: 22px; font-weight: 600; letter-spacing: -0.3px; }
+
+  /* KPIs */
+  .kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 20px; }
+  .kpi-card { background: var(--white); border: 1px solid var(--border); border-radius: var(--r-lg); padding: 18px 20px; }
+  .kpi-label { font-size: 11px; color: var(--muted); font-weight: 500; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 6px; }
+  .kpi-val   { font-size: 28px; font-weight: 700; color: var(--text); letter-spacing: -0.5px; font-variant-numeric: tabular-nums; line-height: 1; }
+  .kpi-unit  { font-size: 14px; font-weight: 400; color: var(--muted); }
+  .kpi-sub   { font-size: 11px; color: var(--hint); margin-top: 4px; }
+
+  /* Tarjetas por congelador */
+  .cong-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 20px; }
+  .cong-card { background: var(--white); border: 1px solid var(--border); border-radius: var(--r-lg); padding: 18px 20px; }
+  .cong-name { font-size: 12px; font-weight: 700; color: var(--navy); margin-bottom: 12px; }
+  .cong-temp { font-size: 30px; font-weight: 700; color: var(--blue); letter-spacing: -1px; font-variant-numeric: tabular-nums; }
+  .cong-temp-unit { font-size: 14px; font-weight: 400; color: var(--muted); }
+  .cong-meta { display: flex; flex-direction: column; gap: 5px; margin-top: 10px; border-top: 1px solid var(--border); padding-top: 10px; }
+  .cong-row  { display: flex; justify-content: space-between; font-size: 12px; }
+  .cong-lbl  { color: var(--muted); }
+  .cong-val  { color: var(--text); font-weight: 500; font-variant-numeric: tabular-nums; }
+  .mini-bar  { height: 6px; border-radius: 3px; background: var(--border); margin-top: 10px; overflow: hidden; }
+  .mini-fill { height: 100%; border-radius: 3px; background: var(--green); }
+  .mini-label { font-size: 10px; color: var(--hint); margin-top: 4px; }
+
+  /* Gráficas */
+  .charts-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .chart-wide  { grid-column: 1 / -1; }
+  .chart-card  { background: var(--white); border: 1px solid var(--border); border-radius: var(--r-lg); overflow: hidden; }
+  .chart-hdr   { padding: 13px 18px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+  .chart-title { font-size: 13px; font-weight: 600; color: var(--text); }
+  .chart-sub   { font-size: 11px; color: var(--muted); }
+  .chart-body  { padding: 16px 18px; }
+
+  @media (max-width: 900px) {
+    .kpi-grid    { grid-template-columns: repeat(2, 1fr); }
+    .cong-grid   { grid-template-columns: 1fr; }
+    .charts-grid { grid-template-columns: 1fr; }
+    .chart-wide  { grid-column: 1; }
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="brand">
+    <div class="brand-icon">🐟</div>
+    <span class="brand-name">ClimaLink</span>
+    <span class="brand-sep">/</span>
+    <span class="brand-sub">Pesquera Estrada</span>
+  </div>
+  <div class="nav-right">
+    <span class="nav-user">Usuario: <strong>{{ session.usuario }}</strong></span>
+    <a href="/historial" class="btn-nav">📋 Historial</a>
+    <button class="btn-theme" id="themeToggle" title="Cambiar tema">🌙</button>
+    <a href="/logout" class="btn-nav">Cerrar sesión</a>
+  </div>
+</nav>
+
+<main>
+
+  <div class="page-header">
+    <div class="breadcrumb">
+      <a href="/historial">Panel de control</a>
+      <span>/</span> Análisis estadístico
+    </div>
+    <h1 class="page-title">Análisis estadístico</h1>
+  </div>
+
+  {% if stats_cong %}
+
+  <!-- KPIs globales -->
+  {% set tot_global = stats_cong | map(attribute='total') | map('int') | sum %}
+  {% set opt_global = stats_cong | map(attribute='opt')   | map('int') | sum %}
+  <div class="kpi-grid">
+    <div class="kpi-card">
+      <div class="kpi-label">Temp. promedio</div>
+      <div class="kpi-val">
+        {{ (stats_cong | map(attribute='avg_temp') | map('float') | sum / stats_cong | length) | round(1) }}
+        <span class="kpi-unit">°C</span>
+      </div>
+      <div class="kpi-sub">Promedio de todos los congeladores</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Temp. mínima</div>
+      <div class="kpi-val">
+        {{ stats_cong | map(attribute='min_temp') | map('float') | min | round(2) }}
+        <span class="kpi-unit">°C</span>
+      </div>
+      <div class="kpi-sub">Valor más bajo registrado</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Temp. máxima</div>
+      <div class="kpi-val">
+        {{ stats_cong | map(attribute='max_temp') | map('float') | max | round(2) }}
+        <span class="kpi-unit">°C</span>
+      </div>
+      <div class="kpi-sub">Valor más alto registrado</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">% Estado óptimo</div>
+      <div class="kpi-val">
+        {{ ((opt_global / tot_global * 100) if tot_global > 0 else 0) | round(1) }}
+        <span class="kpi-unit">%</span>
+      </div>
+      <div class="kpi-sub">{{ opt_global }} de {{ tot_global }} registros</div>
+    </div>
+  </div>
+
+  <!-- Tarjetas por congelador -->
+  <div class="cong-grid">
+    {% for s in stats_cong %}
+    {% set pct = ((s.opt | int / s.total | int * 100) if s.total | int > 0 else 0) | round(0) | int %}
+    <div class="cong-card">
+      <div class="cong-name">❄️ Congelador {{ s.congelador }}</div>
+      <div class="cong-temp">{{ s.avg_temp }}<span class="cong-temp-unit"> °C prom.</span></div>
+      <div class="cong-meta">
+        <div class="cong-row"><span class="cong-lbl">Mínima registrada</span><span class="cong-val">{{ s.min_temp }} °C</span></div>
+        <div class="cong-row"><span class="cong-lbl">Máxima registrada</span><span class="cong-val">{{ s.max_temp }} °C</span></div>
+        <div class="cong-row"><span class="cong-lbl">Humedad promedio</span><span class="cong-val">{{ s.avg_hum }}%</span></div>
+        <div class="cong-row"><span class="cong-lbl">Total registros</span><span class="cong-val">{{ s.total }}</span></div>
+        <div class="cong-row"><span class="cong-lbl">En riesgo</span><span class="cong-val">{{ s.rie }}</span></div>
+      </div>
+      <div class="mini-bar"><div class="mini-fill" style="width:{{ pct }}%"></div></div>
+      <div class="mini-label">{{ pct }}% en estado óptimo</div>
+    </div>
+    {% endfor %}
+  </div>
+
+  <!-- Gráficas -->
+  <div class="charts-grid">
+
+    <div class="chart-card chart-wide">
+      <div class="chart-hdr">
+        <span class="chart-title">Tendencia de temperatura</span>
+        <span class="chart-sub">Últimos 30 registros por congelador</span>
+      </div>
+      <div class="chart-body"><canvas id="chartTendencia" height="80"></canvas></div>
+    </div>
+
+    <div class="chart-card">
+      <div class="chart-hdr">
+        <span class="chart-title">Temperatura por congelador</span>
+        <span class="chart-sub">Promedio, mínima y máxima</span>
+      </div>
+      <div class="chart-body"><canvas id="chartBarTemp" height="180"></canvas></div>
+    </div>
+
+    <div class="chart-card">
+      <div class="chart-hdr">
+        <span class="chart-title">Distribución por especie</span>
+        <span class="chart-sub">Total de registros</span>
+      </div>
+      <div class="chart-body" style="display:flex;justify-content:center;">
+        <canvas id="chartEspecie" height="180" style="max-width:300px"></canvas>
+      </div>
+    </div>
+
+  </div>
+  {% else %}
+  <p style="color:var(--muted);margin-top:40px;text-align:center;">Sin datos suficientes para mostrar el análisis.</p>
+  {% endif %}
+
+</main>
+
+<script>
+const TENDENCIA  = {{ tendencia    | tojson }};
+const STATS_CONG = {{ stats_cong   | tojson }};
+const DIST_ESP   = {{ dist_especie | tojson }};
+
+const PALETTE = {
+  A: { line: '#185FA5', fill: 'rgba(24,95,165,0.08)' },
+  B: { line: '#0f9e6e', fill: 'rgba(15,158,110,0.08)' },
+  C: { line: '#d97706', fill: 'rgba(217,119,6,0.08)' },
+};
+const GRID_COLOR = getComputedStyle(document.documentElement).getPropertyValue('--border').trim() || '#e2e6ea';
+
+// ── Tendencia ────────────────────────────────────────────────────────────────
+(function() {
+  const ctx = document.getElementById('chartTendencia');
+  if (!ctx || !Object.keys(TENDENCIA).length) return;
+  const maxLen = Math.max(...Object.values(TENDENCIA).map(d => d.labels.length));
+  const labels = Array.from({ length: maxLen }, (_, i) => i + 1);
+  const datasets = Object.entries(TENDENCIA).map(([c, d]) => ({
+    label: 'Congelador ' + c,
+    data: d.temps,
+    borderColor: (PALETTE[c] || PALETTE.A).line,
+    backgroundColor: (PALETTE[c] || PALETTE.A).fill,
+    borderWidth: 2, pointRadius: 2, pointHoverRadius: 5, tension: 0.35, fill: true,
+  }));
+  new Chart(ctx, {
+    type: 'line', data: { labels, datasets },
+    options: {
+      responsive: true, interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { position: 'top', labels: { boxWidth: 12, font: { size: 11 } } },
+        tooltip: { callbacks: { label: c => ' ' + c.dataset.label + ': ' + c.parsed.y + ' °C' } },
+      },
+      scales: {
+        x: { ticks: { font: { size: 10 }, color: '#9ca3af' }, grid: { color: '#f0f2f5' } },
+        y: { ticks: { font: { size: 10 }, color: '#9ca3af', callback: v => v + ' °C' }, grid: { color: '#f0f2f5' } },
+      },
+    },
+  });
+})();
+
+// ── Barras ───────────────────────────────────────────────────────────────────
+(function() {
+  const ctx = document.getElementById('chartBarTemp');
+  if (!ctx || !STATS_CONG.length) return;
+  const labels = STATS_CONG.map(s => 'Cong. ' + s.congelador);
+  const colors = STATS_CONG.map(s => (PALETTE[s.congelador] || PALETTE.A).line);
+  new Chart(ctx, {
+    type: 'bar',
+    data: { labels, datasets: [
+      { label: 'Promedio', data: STATS_CONG.map(s => +s.avg_temp), backgroundColor: colors.map(c => c + 'cc'), borderColor: colors, borderWidth: 1.5, borderRadius: 6 },
+      { label: 'Mínima',  data: STATS_CONG.map(s => +s.min_temp), backgroundColor: 'rgba(24,95,165,0.12)', borderColor: '#185FA5', borderWidth: 1, borderRadius: 6 },
+      { label: 'Máxima',  data: STATS_CONG.map(s => +s.max_temp), backgroundColor: 'rgba(217,119,6,0.12)', borderColor: '#d97706', borderWidth: 1, borderRadius: 6 },
+    ]},
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { position: 'top', labels: { boxWidth: 10, font: { size: 11 } } },
+        tooltip: { callbacks: { label: c => ' ' + c.dataset.label + ': ' + c.parsed.y + ' °C' } },
+      },
+      scales: {
+        x: { ticks: { font: { size: 11 }, color: '#9ca3af' }, grid: { display: false } },
+        y: { ticks: { font: { size: 10 }, color: '#9ca3af', callback: v => v + ' °C' }, grid: { color: '#f0f2f5' } },
+      },
+    },
+  });
+})();
+
+// ── Donut especie ────────────────────────────────────────────────────────────
+(function() {
+  const ctx = document.getElementById('chartEspecie');
+  if (!ctx || !DIST_ESP.length) return;
+  const COLORS = ['#185FA5','#0f9e6e','#d97706','#7c3aed','#db2777','#0891b2'];
+  new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      labels: DIST_ESP.map(d => d.especie),
+      datasets: [{ data: DIST_ESP.map(d => d.cnt), backgroundColor: COLORS.slice(0, DIST_ESP.length), borderWidth: 2, borderColor: '#fff', hoverOffset: 6 }],
+    },
+    options: {
+      responsive: true, cutout: '62%',
+      plugins: {
+        legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 }, padding: 14 } },
+        tooltip: { callbacks: { label: c => ' ' + c.label + ': ' + c.parsed + ' registros' } },
+      },
+    },
+  });
+})();
+
+// ── Tema ─────────────────────────────────────────────────────────────────────
+const btn = document.getElementById('themeToggle');
+const root = document.documentElement;
+function applyTheme(dark) {
+  root.setAttribute('data-theme', dark ? 'dark' : 'light');
+  btn.textContent = dark ? '☀️' : '🌙';
+}
+const saved = localStorage.getItem('theme');
+applyTheme(saved === 'dark' || (!saved && window.matchMedia('(prefers-color-scheme: dark)').matches));
+btn.addEventListener('click', () => {
+  const isDark = root.getAttribute('data-theme') === 'dark';
+  localStorage.setItem('theme', isDark ? 'light' : 'dark');
+  applyTheme(!isDark);
+});
+</script>
+</body>
+</html>

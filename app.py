@@ -234,7 +234,29 @@ def historial():
     cursor.execute("SELECT COUNT(*) FROM registros WHERE estado='OPTIMO'")
     optimos = cursor.fetchone()["count"]
 
-    # ── Análisis estadístico ──────────────────────────────────────────────────
+    cursor.close()
+    conn.close()
+
+    return render_template(
+        "historial.html",
+        registros=registros,
+        total=total,
+        riesgos=riesgos,
+        optimos=optimos,
+        filtro_congelador=congelador,
+        filtro_especie=especie,
+        filtro_estado=estado,
+    )
+
+
+@app.route("/analisis")
+def analisis():
+    if "usuario" not in session:
+        return redirect(url_for("login"))
+
+    conn = get_db()
+    cursor = conn.cursor()
+
     cursor.execute("""
         SELECT congelador,
                ROUND(AVG(temperatura)::numeric, 2) AS avg_temp,
@@ -278,21 +300,24 @@ def historial():
         tendencia[c]["labels"].append(str(r["id"]))
         tendencia[c]["temps"].append(float(r["temperatura"]) if r["temperatura"] is not None else None)
 
+    cursor.execute("SELECT COUNT(*) FROM registros")
+    total = cursor.fetchone()["count"]
+    cursor.execute("SELECT COUNT(*) FROM registros WHERE estado='RIESGO'")
+    riesgos = cursor.fetchone()["count"]
+    cursor.execute("SELECT COUNT(*) FROM registros WHERE estado='OPTIMO'")
+    optimos = cursor.fetchone()["count"]
+
     cursor.close()
     conn.close()
 
     return render_template(
-        "historial.html",
-        registros=registros,
-        total=total,
-        riesgos=riesgos,
-        optimos=optimos,
-        filtro_congelador=congelador,
-        filtro_especie=especie,
-        filtro_estado=estado,
+        "analisis.html",
         stats_cong=stats_cong,
         dist_especie=dist_especie,
         tendencia=tendencia,
+        total=total,
+        riesgos=riesgos,
+        optimos=optimos,
     )
 
 # ─── ALERTA EMAIL ────────────────────────────────────────
